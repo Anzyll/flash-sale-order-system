@@ -1,211 +1,295 @@
-📄  ARCHITECTURE DECISION DOCUMENT
+# 📄 Architecture Decision Document (ADD)
 
-AD-00: Architecture Style Selection
-Decision
-Adopt an event-driven modular monolith architecture.
+---
 
-Problem
+## AD-00: Architecture Style Selection
+
+### Decision
+Adopt an **event-driven modular monolith architecture**.
+
+---
+
+### Problem
 Flash sale systems must handle:
-extremely high concurrency
-prevention of overselling
-low latency requirements
-controlled database load
+- Extremely high concurrency
+- Prevention of overselling
+- Low latency requirements
+- Controlled database load
 
-Rationale
-A modular monolith provides:
-faster development and simpler deployment
-strong domain separation (Product, Sale, Order modules)
-An event-driven approach:
-decouples request handling from order processing
-absorbs traffic spikes using Kafka
-enables asynchronous and scalable processing
+---
 
-Why NOT Microservices
-Microservices architecture was considered but rejected for the following reasons:
+### Rationale
 
-1. Premature Complexity
-   The current system scope does not justify distributed system overhead.
+#### Modular Monolith
+- Faster development and simpler deployment
+- Clear domain separation (Product, Sale, Order modules)
 
-2. Operational Overhead
-   Requires service discovery, API gateway, distributed tracing,
-   inter-service communication, and complex deployment pipelines.
+#### Event-Driven Approach
+- Decouples request handling from order processing
+- Absorbs traffic spikes using Kafka
+- Enables asynchronous and scalable processing
 
-3. Distributed Consistency Challenges
-   Handling transactions across services would require patterns like Saga,
-   increasing implementation complexity.
+---
 
-4. Team Size Constraint
-   Microservices are effective with larger teams; for a single-developer project,
-   a modular monolith provides better productivity.
+### Why NOT Microservices
 
-5. Network Latency
-   Inter-service communication adds latency, which is critical in flash sale scenarios.
+Microservices architecture was rejected due to:
 
-Why Not Layered Monolith
-A traditional layered monolith (synchronous architecture) was rejected due to scalability limitations under high concurrency.
+- **Premature Complexity**  
+  The current system scope does not justify distributed system overhead
 
-1. Tight Coupling Between Layers
-   Controllers directly invoke services and repositories synchronously,
-   making it difficult to isolate high-load components like order processing.
+- **Operational Overhead**  
+  Requires:
+   - API Gateway
+   - Service discovery
+   - Distributed tracing
+   - Complex deployment pipelines
 
-2. Database Bottleneck
-   All requests result in immediate database writes.
-   Under flash sale conditions (e.g., thousands of concurrent users),
-   this leads to:
-- lock contention
-- connection pool exhaustion
-- increased latency
+- **Distributed Consistency Challenges**  
+  Requires Saga pattern → increases complexity
 
-3. Lack of Asynchronous Processing
-   Synchronous request-response flow cannot absorb traffic spikes.
-   This increases the risk of system failure during peak load.
+- **Team Size Constraint**  
+  Not suitable for a single-developer project
 
-4. Poor Load Handling
-   No buffering mechanism exists between request intake and persistence,
-   leading to uneven load distribution.
+- **Network Latency**  
+  Inter-service communication adds latency (critical in flash sale systems)
 
-5. Limited Scalability
-   Scaling requires scaling the entire application,
-   rather than isolating critical components.
+---
 
-AD-01: Redis for Inventory Management
-Decision
+### Why NOT Layered Monolith
+
+A traditional synchronous layered monolith was rejected due to:
+
+- **Tight Coupling Between Layers**  
+  Hard to isolate high-load components
+
+- **Database Bottleneck**
+   - Lock contention
+   - Connection pool exhaustion
+   - Increased latency
+
+- **Lack of Asynchronous Processing**  
+  Cannot absorb traffic spikes
+
+- **Poor Load Handling**  
+  No buffering between API and DB
+
+- **Limited Scalability**  
+  Requires scaling entire application
+
+---
+
+## AD-01: Redis for Inventory Management
+
+### Decision
 Use Redis for stock validation and decrement.
 
-Problem
+---
+
+### Problem
 Relational databases suffer from:
-lock contention
-slow writes under high concurrency
+- Lock contention
+- Slow writes under high concurrency
 
-Rationale
+---
+
+### Rationale
 Redis provides:
-in-memory speed
-atomic operations
-reduced DB load
+- In-memory speed
+- Atomic operations
+- Reduced database load
 
-Trade-offs
-High performance
-Requires synchronization with database
+---
 
-AD-02: Atomic Stock Operation
-Decision
-Use Redis atomic operations (Lua script).
+### Trade-offs
+- High performance
+- Requires synchronization with database
 
-Problem
+---
+
+## AD-02: Atomic Stock Operation
+
+### Decision
+Use Redis atomic operations (**Lua script preferred**).
+
+---
+
+### Problem
 Concurrent requests → race conditions → overselling
 
-Rationale
+---
+
+### Rationale
 Atomic execution ensures:
-check + decrement in one step
-no inconsistent stock
+- Check + decrement in one step
+- No inconsistent stock
 
-Trade-offs
-Strong correctness
-Slight complexity with Lua
+---
 
-AD-03: Asynchronous Order Processing
-Decision
-Use Kafka for async order processing.
+### Trade-offs
+- Strong correctness
+- Slight complexity with Lua
 
-Problem
-Direct DB writes cannot handle flash sale spikes.
+---
 
-Rationale
+## AD-03: Asynchronous Order Processing
+
+### Decision
+Use Kafka for asynchronous order processing.
+
+---
+
+### Problem
+Direct database writes cannot handle flash sale spikes.
+
+---
+
+### Rationale
 Kafka:
-buffers burst traffic
-decouples API from DB
-smooths write load
-Partitioning by productId:
-preserves order per product
-enables parallel processing
+- Buffers burst traffic
+- Decouples API from database
+- Smooths write load
 
-Trade-offs
-High scalability
-Eventual consistency
+Partitioning by `productId`:
+- Preserves order per product
+- Enables parallel processing
 
-AD-04: Message Broker Selection (Kafka)
-Decision
-Use Kafka.
+---
 
-Rationale
-high throughput
-partition-based ordering
-replay capability
-durability
+### Trade-offs
+- High scalability
+- Eventual consistency
 
-Alternatives
-RabbitMQ → simpler but lower throughput at scale
+---
 
-Trade-offs
-scalable
-operational complexity
+## AD-04: Message Broker Selection (Kafka)
 
-AD-05: Idempotency Strategy
-Decision
-Ensure one order per user per product.
+### Decision
+Use Kafka as the message broker.
 
-Implementation
-Redis check → fast rejection
-DB unique constraint → final guarantee
+---
 
-Rationale
+### Rationale
+- High throughput
+- Partition-based ordering
+- Replay capability
+- Durability
+
+---
+
+### Alternatives
+- RabbitMQ → simpler but lower throughput at scale
+
+---
+
+### Trade-offs
+- High scalability
+- Increased operational complexity
+
+---
+
+## AD-05: Idempotency Strategy
+
+### Decision
+Ensure **one order per user per product**.
+
+---
+
+### Implementation
+- Redis check → fast rejection
+- Database unique constraint → final guarantee
+
+---
+
+### Rationale
 Prevents duplicate orders under retries and concurrent requests.
 
-Trade-offs
-Strong correctness
-Slight overhead
+---
 
-AD-06: Consistency Model
-Decision
-Use eventual consistency
+### Trade-offs
+- Strong correctness
+- Slight overhead
 
-Rationale
-improves throughput
-reduces latency
-supports async processing
+---
 
-Trade-offs
-temporary inconsistency
-requires compensation logic
+## AD-06: Consistency Model
 
-AD-07: Failure Handling
-Decision
-Implement compensation mechanism.
+### Decision
+Use **eventual consistency**.
 
-Problem
-Redis decrement succeeds but DB write fails → stock lost
+---
 
-Solution
-increment stock back in Redis
-mark order as FAILED
+### Rationale
+- Improves throughput
+- Reduces latency
+- Supports asynchronous processing
 
-Trade-offs
-ensures consistency
-adds complexity
-AD-08: API Response Strategy
-Decision
-Return HTTP 202 Accepted for order placement.
+---
 
-Rationale
-request validated → pushed to Kafka → return immediately
-reduces latency
-avoids blocking
+### Trade-offs
+- Temporary inconsistency
+- Requires compensation logic
 
-Trade-offs
-client must poll for status
-eventual consistency visible to users
+---
 
-AD-09: Internal Architecture Pattern
-Decision
-Use layered architecture with clear module boundaries.
+## AD-07: Failure Handling
 
-Rationale
-separates business logic from infrastructure
-keeps implementation simple
-avoids over-engineering
+### Decision
+Implement a **compensation mechanism**.
 
-Trade-offs
-less strict than hexagonal
-easier to maintain
+---
 
+### Problem
+Redis decrement succeeds but database write fails → stock inconsistency
 
+---
+
+### Solution
+- Increment stock back in Redis (compensation action)
+- Mark order as **FAILED**
+
+---
+
+### Trade-offs
+- Ensures consistency
+- Adds complexity
+
+---
+
+## AD-08: API Response Strategy
+
+### Decision
+Return **HTTP 202 Accepted** for order placement.
+
+---
+
+### Rationale
+- Request validated → pushed to Kafka → return immediately
+- Reduces latency
+- Avoids blocking
+
+---
+
+### Trade-offs
+- Client must poll for order status
+- Eventual consistency visible to users
+
+---
+
+## AD-09: Internal Architecture Pattern
+
+### Decision
+Use a **modular layered architecture** with clear boundaries.
+
+---
+
+### Rationale
+- Separates business logic from infrastructure
+- Keeps implementation simple
+- Avoids over-engineering
+
+---
+
+### Trade-offs
+- Less strict than hexagonal architecture
+- Easier to maintain  
