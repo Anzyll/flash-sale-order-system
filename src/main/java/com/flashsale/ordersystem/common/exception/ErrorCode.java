@@ -10,6 +10,8 @@ public enum ErrorCode {
     SALE_EXPIRED(400,"sale expired"),
     INVALID_PRICE(400,"invalid price"),
     INVALID_STOCK(400,"invalid stock"),
+    INSUFFICIENT_STOCK(409,"insufficient stock"),
+    ALREADY_PURCHASED(409,"product is already purchased"),
     SALE_NOT_STARTED(400,"sale not started");
 
     private final int status;
