@@ -12,7 +12,10 @@ public enum ErrorCode {
     INVALID_STOCK(400,"invalid stock"),
     INSUFFICIENT_STOCK(409,"insufficient stock"),
     ALREADY_PURCHASED(409,"product is already purchased"),
-    SALE_NOT_STARTED(400,"sale not started");
+    INVALID_QUANTITY(400, "invalid quantity"),
+    STOCK_NOT_INITIALIZED(500, "stock not initialized in redis"),
+    SALE_NOT_STARTED(400,"sale not started"),
+    REDIS_EXECUTION_FAILED(500,"redis execution failed");
 
     private final int status;
     private final String message;

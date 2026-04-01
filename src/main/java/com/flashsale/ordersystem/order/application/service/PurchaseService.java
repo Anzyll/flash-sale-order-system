@@ -2,6 +2,7 @@ package com.flashsale.ordersystem.order.application.service;
 
 import com.flashsale.ordersystem.common.exception.CustomException;
 import com.flashsale.ordersystem.common.exception.ErrorCode;
+import com.flashsale.ordersystem.order.application.port.StockService;
 import com.flashsale.ordersystem.order.domain.enums.OrderStatus;
 import com.flashsale.ordersystem.order.domain.model.Order;
 import com.flashsale.ordersystem.order.domain.model.OrderItem;
@@ -24,6 +25,7 @@ public class PurchaseService {
     private final OrderItemRepository orderItemRepository;
     private final SaleRepository saleRepository;
     private  final SaleItemRepository saleItemRepository;
+    private final StockService stockService;
     @Transactional
     public Order purchase(Long saleId, Long productId) {
         Long userId = 1L;
@@ -34,20 +36,20 @@ public class PurchaseService {
         if(sale.getEndTime().isBefore(LocalDateTime.now())){
             throw new CustomException(ErrorCode.SALE_EXPIRED);
         }
+        if (sale.getStartTime().isAfter(LocalDateTime.now())) {
+            throw new CustomException(ErrorCode.SALE_NOT_STARTED);
+        }
 
         SaleItem item = saleItemRepository.findBySaleIdAndProductId(saleId,productId)
                 .orElseThrow(()->new CustomException(ErrorCode.PRODUCT_NOT_FOUND));
 
 
-        int updated = saleItemRepository.decrementStock(saleId,productId,quantity);
-        if(updated==0)throw new CustomException(ErrorCode.INSUFFICIENT_STOCK);
+        boolean success = stockService.decrement(saleId,productId,quantity);
+        if(!success){
+            throw new CustomException(ErrorCode.INSUFFICIENT_STOCK);
+        }
 
-        Order order = new Order();
-        order.setSaleId(sale.getId());
-        order.setUserId(userId);
-        order.setStatus(OrderStatus.PENDING);
-        order.setCreatedAt(LocalDateTime.now());
-        order.setTotalAmount((item.getSalePrice()));
+        Order order = new Order(); order.setSaleId(sale.getId()); order.setUserId(userId); order.setStatus(OrderStatus.PENDING); order.setCreatedAt(LocalDateTime.now()); order.setTotalAmount((item.getSalePrice()));
         Order savedOrder = orderRepository.save(order);
 
         OrderItem orderItem = new OrderItem();
