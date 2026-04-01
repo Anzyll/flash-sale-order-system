@@ -1,4 +1,4 @@
-package com.flashsale.ordersystem.order.infrastructure;
+package com.flashsale.ordersystem.order.infrastructure.repository;
 
 import com.flashsale.ordersystem.order.domain.model.Order;
 import org.springframework.data.jpa.repository.JpaRepository;

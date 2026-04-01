@@ -5,8 +5,8 @@ import com.flashsale.ordersystem.common.exception.ErrorCode;
 import com.flashsale.ordersystem.order.domain.enums.OrderStatus;
 import com.flashsale.ordersystem.order.domain.model.Order;
 import com.flashsale.ordersystem.order.domain.model.OrderItem;
-import com.flashsale.ordersystem.order.infrastructure.OrderItemRepository;
-import com.flashsale.ordersystem.order.infrastructure.OrderRepository;
+import com.flashsale.ordersystem.order.infrastructure.repository.OrderItemRepository;
+import com.flashsale.ordersystem.order.infrastructure.repository.OrderRepository;
 import com.flashsale.ordersystem.sale.domain.Sale;
 import com.flashsale.ordersystem.sale.domain.SaleItem;
 import com.flashsale.ordersystem.sale.infrastructure.SaleItemRepository;
@@ -39,6 +39,9 @@ public class PurchaseService {
                 .orElseThrow(()->new CustomException(ErrorCode.PRODUCT_NOT_FOUND));
 
 
+        int updated = saleItemRepository.decrementStock(saleId,productId,quantity);
+        if(updated==0)throw new CustomException(ErrorCode.INSUFFICIENT_STOCK);
+
         Order order = new Order();
         order.setSaleId(sale.getId());
         order.setUserId(userId);
@@ -61,9 +64,6 @@ public class PurchaseService {
         } catch (org.springframework.dao.DataIntegrityViolationException e) {
             throw new CustomException(ErrorCode.ALREADY_PURCHASED);
         }
-
-        int updated = saleItemRepository.decrementStock(saleId,productId,quantity);
-        if(updated==0)throw new CustomException(ErrorCode.INSUFFICIENT_STOCK);
 
         return savedOrder;
 
