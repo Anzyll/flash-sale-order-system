@@ -2,6 +2,7 @@ package com.flashsale.ordersystem.order.application.service;
 
 import com.flashsale.ordersystem.common.exception.CustomException;
 import com.flashsale.ordersystem.common.exception.ErrorCode;
+import com.flashsale.ordersystem.order.application.port.IdempotencyService;
 import com.flashsale.ordersystem.order.application.port.StockService;
 import com.flashsale.ordersystem.order.domain.enums.OrderStatus;
 import com.flashsale.ordersystem.order.domain.model.Order;
@@ -26,6 +27,7 @@ public class PurchaseService {
     private final SaleRepository saleRepository;
     private  final SaleItemRepository saleItemRepository;
     private final StockService stockService;
+    private final IdempotencyService idempotencyService;
     @Transactional
     public Order purchase(Long saleId, Long productId) {
         Long userId = 1L;
@@ -43,31 +45,45 @@ public class PurchaseService {
         SaleItem item = saleItemRepository.findBySaleIdAndProductId(saleId,productId)
                 .orElseThrow(()->new CustomException(ErrorCode.PRODUCT_NOT_FOUND));
 
-
-        boolean success = stockService.decrement(saleId,productId,quantity);
-        if(!success){
-            throw new CustomException(ErrorCode.INSUFFICIENT_STOCK);
+        boolean allowed = idempotencyService.tryAcquire(userId,saleId,productId);
+        if(!allowed){
+            throw new CustomException(ErrorCode.DUPLICATE_REQUEST);
         }
-
-        Order order = new Order(); order.setSaleId(sale.getId()); order.setUserId(userId); order.setStatus(OrderStatus.PENDING); order.setCreatedAt(LocalDateTime.now()); order.setTotalAmount((item.getSalePrice()));
-        Order savedOrder = orderRepository.save(order);
-
-        OrderItem orderItem = new OrderItem();
-        orderItem.setOrderId(savedOrder.getId());
-        orderItem.setProductId(item.getProductId());
-        orderItem.setQuantity(quantity);
-        orderItem.setPrice(item.getSalePrice());
-        orderItem.setUserId(userId);
-        orderItem.setSaleId(saleId);
 
 
         try {
-            orderItemRepository.save(orderItem);
-        } catch (org.springframework.dao.DataIntegrityViolationException e) {
-            throw new CustomException(ErrorCode.ALREADY_PURCHASED);
-        }
+            boolean success = stockService.decrement(saleId, productId, quantity);
+            if (!success) {
+                throw new CustomException(ErrorCode.INSUFFICIENT_STOCK);
+            }
 
-        return savedOrder;
+            Order order = new Order();
+            order.setSaleId(sale.getId());
+            order.setUserId(userId);
+            order.setStatus(OrderStatus.PENDING);
+            order.setCreatedAt(LocalDateTime.now());
+            order.setTotalAmount((item.getSalePrice()));
+            Order savedOrder = orderRepository.save(order);
+
+            OrderItem orderItem = new OrderItem();
+            orderItem.setOrderId(savedOrder.getId());
+            orderItem.setProductId(item.getProductId());
+            orderItem.setQuantity(quantity);
+            orderItem.setPrice(item.getSalePrice());
+            orderItem.setUserId(userId);
+            orderItem.setSaleId(saleId);
+
+            try {
+                orderItemRepository.save(orderItem);
+            } catch (org.springframework.dao.DataIntegrityViolationException e) {
+                throw new CustomException(ErrorCode.ALREADY_PURCHASED);
+            }
+            return savedOrder;
+        }
+        catch (RuntimeException e){
+            idempotencyService.release(userId,saleId,productId);
+            throw e;
+        }
 
     }
 }

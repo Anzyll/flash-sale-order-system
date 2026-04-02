@@ -15,6 +15,7 @@ public enum ErrorCode {
     INVALID_QUANTITY(400, "invalid quantity"),
     STOCK_NOT_INITIALIZED(500, "stock not initialized in redis"),
     SALE_NOT_STARTED(400,"sale not started"),
+    DUPLICATE_REQUEST(409,"duplicate request"),
     REDIS_EXECUTION_FAILED(500,"redis execution failed");
 
     private final int status;
