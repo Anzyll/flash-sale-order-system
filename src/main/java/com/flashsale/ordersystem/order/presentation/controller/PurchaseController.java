@@ -21,7 +21,7 @@ public class PurchaseController {
     @PostMapping
     @ResponseStatus(HttpStatus.CREATED)
     public PurchaseResponse purchase(@PathVariable Long saleId, @Valid @RequestBody PurchaseRequest request){
-        Order order = purchaseService.purchase(saleId,request.productId());
+        Order order = purchaseService.purchase(request.userId(),saleId,request.productId());
         return PurchaseMapper.toResponse(order);
 
     }

@@ -2,7 +2,6 @@ package com.flashsale.ordersystem.order.application.service;
 
 import com.flashsale.ordersystem.common.exception.CustomException;
 import com.flashsale.ordersystem.common.exception.ErrorCode;
-import com.flashsale.ordersystem.order.application.port.IdempotencyService;
 import com.flashsale.ordersystem.order.application.port.StockService;
 import com.flashsale.ordersystem.order.domain.enums.OrderStatus;
 import com.flashsale.ordersystem.order.domain.model.Order;
@@ -14,23 +13,22 @@ import com.flashsale.ordersystem.sale.domain.SaleItem;
 import com.flashsale.ordersystem.sale.infrastructure.SaleItemRepository;
 import com.flashsale.ordersystem.sale.infrastructure.SaleRepository;
 import lombok.RequiredArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
-import org.springframework.transaction.annotation.Transactional;
 
 import java.time.LocalDateTime;
 
 @Service
 @RequiredArgsConstructor
+@Slf4j
 public class PurchaseService {
     private final OrderRepository orderRepository;
     private final OrderItemRepository orderItemRepository;
     private final SaleRepository saleRepository;
     private  final SaleItemRepository saleItemRepository;
     private final StockService stockService;
-    private final IdempotencyService idempotencyService;
-    @Transactional
-    public Order purchase(Long saleId, Long productId) {
-        Long userId = 1L;
+
+    public Order purchase(Long userId,Long saleId, Long productId) {
         int quantity = 1;
         Sale sale = saleRepository.findById(saleId)
                 .orElseThrow(()-> new CustomException(ErrorCode.SALE_NOT_FOUND));
@@ -42,17 +40,12 @@ public class PurchaseService {
             throw new CustomException(ErrorCode.SALE_NOT_STARTED);
         }
 
-        SaleItem item = saleItemRepository.findBySaleIdAndProductId(saleId,productId)
+         SaleItem item = saleItemRepository.findBySaleIdAndProductId(saleId,productId)
                 .orElseThrow(()->new CustomException(ErrorCode.PRODUCT_NOT_FOUND));
 
-        boolean allowed = idempotencyService.tryAcquire(userId,saleId,productId);
-        if(!allowed){
-            throw new CustomException(ErrorCode.DUPLICATE_REQUEST);
-        }
+        long ttlSeconds = calculateTTL(sale);
 
-
-        try {
-            boolean success = stockService.decrement(saleId, productId, quantity);
+            boolean success = stockService.processPurchase(userId,saleId, productId, quantity,ttlSeconds);
             if (!success) {
                 throw new CustomException(ErrorCode.INSUFFICIENT_STOCK);
             }
@@ -63,7 +56,13 @@ public class PurchaseService {
             order.setStatus(OrderStatus.PENDING);
             order.setCreatedAt(LocalDateTime.now());
             order.setTotalAmount((item.getSalePrice()));
-            Order savedOrder = orderRepository.save(order);
+            Order savedOrder;
+            try {
+            savedOrder = orderRepository.save(order);
+            } catch (Exception e) {
+            stockService.revertPurchase(userId,saleId, productId, quantity);
+            throw e;
+            }
 
             OrderItem orderItem = new OrderItem();
             orderItem.setOrderId(savedOrder.getId());
@@ -76,14 +75,14 @@ public class PurchaseService {
             try {
                 orderItemRepository.save(orderItem);
             } catch (org.springframework.dao.DataIntegrityViolationException e) {
+                stockService.revertPurchase(userId,saleId,productId,quantity);
                 throw new CustomException(ErrorCode.ALREADY_PURCHASED);
             }
             return savedOrder;
-        }
-        catch (RuntimeException e){
-            idempotencyService.release(userId,saleId,productId);
-            throw e;
-        }
+    }
 
+    private long calculateTTL(Sale sale) {
+        long seconds = java.time.Duration.between(LocalDateTime.now(),sale.getEndTime()).getSeconds();
+        return Math.max(seconds,60);
     }
 }

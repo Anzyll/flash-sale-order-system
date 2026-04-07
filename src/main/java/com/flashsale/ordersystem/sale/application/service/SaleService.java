@@ -15,7 +15,10 @@ import com.flashsale.ordersystem.sale.infrastructure.SaleItemRepository;
 import com.flashsale.ordersystem.sale.infrastructure.SaleRepository;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
 import org.springframework.dao.DataIntegrityViolationException;
+import org.springframework.data.redis.core.RedisTemplate;
+import org.springframework.data.redis.core.StringRedisTemplate;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -24,10 +27,12 @@ import java.util.List;
 
 @Service
 @RequiredArgsConstructor
+@Slf4j
 public class SaleService {
     private  final SaleRepository saleRepository;
     private final ProductRepository productRepository;
     private final SaleItemRepository saleItemRepository;
+    private final StringRedisTemplate redisTemplate;
     @Transactional
     public Sale createSale(@Valid CreateSaleRequest request) {
         Sale sale = SaleMapper.toEntity(request);
@@ -60,7 +65,17 @@ public class SaleService {
                 saleId
         );
         try {
-            return saleItemRepository.save(saleItem);
+            SaleItem savedItem = saleItemRepository.save(saleItem);
+            String key = "stock:%d:%d".formatted(saleId,request.productId());
+            redisTemplate.opsForValue()
+                    .set(
+                            key,
+                            String.valueOf(request.totalStock())
+                            );
+            log.info("Initialized stock in Redis for product {} with stock {}",
+                    savedItem.getProductId(),
+                    savedItem.getTotalStock());
+            return savedItem;
         } catch (DataIntegrityViolationException e) {
             throw new CustomException(ErrorCode.PRODUCT_ALREADY_IN_SALE);
         }
