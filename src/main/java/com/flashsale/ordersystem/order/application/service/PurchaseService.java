@@ -43,7 +43,7 @@ public class PurchaseService {
          SaleItem item = saleItemRepository.findBySaleIdAndProductId(saleId,productId)
                 .orElseThrow(()->new CustomException(ErrorCode.PRODUCT_NOT_FOUND));
 
-        long ttlSeconds = calculateTTL(sale);
+         long ttlSeconds = calculateTTL(sale);
 
             boolean success = stockService.processPurchase(userId,saleId, productId, quantity,ttlSeconds);
             if (!success) {
