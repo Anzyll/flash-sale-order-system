@@ -5,14 +5,18 @@ import com.flashsale.ordersystem.sale.presentation.dto.SaleItemResponse;
 import com.flashsale.ordersystem.sale.presentation.dto.SaleResponse;
 import com.flashsale.ordersystem.sale.application.service.SaleService;
 import lombok.RequiredArgsConstructor;
+import org.springframework.http.HttpStatus;
+import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.web.bind.annotation.*;
 import java.util.List;
 @RestController
 @RequestMapping("/api/v1/sales")
+@PreAuthorize("hasAnyRole('USER', 'ADMIN')")
 @RequiredArgsConstructor
 public class SaleController {
     private final SaleService saleService;
     @GetMapping
+    @ResponseStatus(HttpStatus.OK)
     public List<SaleResponse> getSales(){
         return saleService.getSales()
                 .stream()
@@ -20,6 +24,7 @@ public class SaleController {
                 .toList();
     }
     @GetMapping("/{saleId}/items")
+    @ResponseStatus(HttpStatus.OK)
     public List<SaleItemResponse> getSaleItems(@PathVariable Long saleId){
         return saleService.getSaleItems(saleId)
                 .stream()

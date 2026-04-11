@@ -5,6 +5,5 @@ import jakarta.validation.constraints.Positive;
 
 public record PurchaseRequest(
         @NotNull
-        Long productId,
-        Long userId
+        Long productId
 ) {}

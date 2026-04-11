@@ -3,12 +3,14 @@ package com.flashsale.ordersystem.product.presentation.controller;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.HttpStatus;
+import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.web.bind.annotation.*;
 import com.flashsale.ordersystem.product.presentation.dto.CreateProductRequest;
 import com.flashsale.ordersystem.product.presentation.dto.ProductResponse;
 import com.flashsale.ordersystem.product.application.service.ProductService;
 
 @RestController
+@PreAuthorize("hasRole('ADMIN')")
 @RequestMapping("/api/v1/admin/products")
 @RequiredArgsConstructor
 public class AdminProductController {

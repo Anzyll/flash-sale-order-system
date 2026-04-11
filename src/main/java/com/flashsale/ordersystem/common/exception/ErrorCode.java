@@ -16,6 +16,8 @@ public enum ErrorCode {
     STOCK_NOT_INITIALIZED(500, "stock not initialized in redis"),
     SALE_NOT_STARTED(400,"sale not started"),
     DUPLICATE_REQUEST(409,"duplicate request"),
+    USER_NOT_FOUND(404,"user not found"),
+    EMAIL_ALREADY_EXISTS(409,"email already exists"),
     REDIS_EXECUTION_FAILED(500,"redis execution failed");
 
     private final int status;

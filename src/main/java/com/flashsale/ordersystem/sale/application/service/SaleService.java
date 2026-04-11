@@ -2,6 +2,7 @@ package com.flashsale.ordersystem.sale.application.service;
 
 import com.flashsale.ordersystem.common.exception.CustomException;
 import com.flashsale.ordersystem.common.exception.ErrorCode;
+import com.flashsale.ordersystem.product.domain.Product;
 import com.flashsale.ordersystem.product.infrastructure.ProductRepository;
 import com.flashsale.ordersystem.sale.presentation.dto.AddProductToSaleRequest;
 import com.flashsale.ordersystem.sale.presentation.dto.SaleItemResponse;
@@ -41,6 +42,7 @@ public class SaleService {
 
     @Transactional
     public SaleItem addProductToSale(Long saleId, AddProductToSaleRequest request) {
+
         Sale sale = saleRepository.findById(saleId)
                 .orElseThrow(() -> new CustomException(ErrorCode.SALE_NOT_FOUND));
 
@@ -48,9 +50,8 @@ public class SaleService {
             throw new CustomException(ErrorCode.SALE_EXPIRED);
         }
 
-        if (!productRepository.existsById(request.productId())) {
-            throw new CustomException(ErrorCode.PRODUCT_NOT_FOUND);
-        }
+        Product product = productRepository.findById(request.productId())
+                .orElseThrow(() -> new CustomException(ErrorCode.PRODUCT_NOT_FOUND));
 
         if (request.salePrice().signum() <= 0) {
             throw new CustomException(ErrorCode.INVALID_PRICE);
@@ -60,22 +61,26 @@ public class SaleService {
             throw new CustomException(ErrorCode.INVALID_STOCK);
         }
 
-        SaleItem saleItem = SaleItemMapper.toEntity(
-                request,
-                saleId
-        );
+
+        SaleItem saleItem = SaleItemMapper.toEntity(request, sale, product);
+
         try {
             SaleItem savedItem = saleItemRepository.save(saleItem);
-            String key = "stock:%d:%d".formatted(saleId,request.productId());
-            redisTemplate.opsForValue()
-                    .set(
-                            key,
-                            String.valueOf(request.totalStock())
-                            );
+
+            // 🔥 Redis key remains same
+            String key = "stock:%d:%d".formatted(saleId, request.productId());
+
+            redisTemplate.opsForValue().set(
+                    key,
+                    String.valueOf(request.totalStock())
+            );
+
             log.info("Initialized stock in Redis for product {} with stock {}",
-                    savedItem.getProductId(),
+                    savedItem.getProduct().getId(),
                     savedItem.getTotalStock());
+
             return savedItem;
+
         } catch (DataIntegrityViolationException e) {
             throw new CustomException(ErrorCode.PRODUCT_ALREADY_IN_SALE);
         }

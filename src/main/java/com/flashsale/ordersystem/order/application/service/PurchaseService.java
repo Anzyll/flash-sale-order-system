@@ -12,6 +12,8 @@ import com.flashsale.ordersystem.sale.domain.Sale;
 import com.flashsale.ordersystem.sale.domain.SaleItem;
 import com.flashsale.ordersystem.sale.infrastructure.SaleItemRepository;
 import com.flashsale.ordersystem.sale.infrastructure.SaleRepository;
+import com.flashsale.ordersystem.user.application.UserService;
+import com.flashsale.ordersystem.user.domain.User;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
@@ -27,9 +29,11 @@ public class PurchaseService {
     private final SaleRepository saleRepository;
     private  final SaleItemRepository saleItemRepository;
     private final StockService stockService;
+    private final UserService userService;
 
-    public Order purchase(Long userId,Long saleId, Long productId) {
+    public Order purchase(String userId,Long saleId, Long productId) {
         int quantity = 1;
+        User user = userService.getUserOrThrow(userId);
         Sale sale = saleRepository.findById(saleId)
                 .orElseThrow(()-> new CustomException(ErrorCode.SALE_NOT_FOUND));
 
@@ -51,8 +55,8 @@ public class PurchaseService {
             }
 
             Order order = new Order();
-            order.setSaleId(sale.getId());
-            order.setUserId(userId);
+            order.setSale(sale);
+            order.setUser(user);
             order.setStatus(OrderStatus.PENDING);
             order.setCreatedAt(LocalDateTime.now());
             order.setTotalAmount((item.getSalePrice()));
@@ -65,12 +69,10 @@ public class PurchaseService {
             }
 
             OrderItem orderItem = new OrderItem();
-            orderItem.setOrderId(savedOrder.getId());
-            orderItem.setProductId(item.getProductId());
+            orderItem.setOrder(savedOrder);
+            orderItem.setProduct(item.getProduct());
             orderItem.setQuantity(quantity);
             orderItem.setPrice(item.getSalePrice());
-            orderItem.setUserId(userId);
-            orderItem.setSaleId(saleId);
 
             try {
                 orderItemRepository.save(orderItem);

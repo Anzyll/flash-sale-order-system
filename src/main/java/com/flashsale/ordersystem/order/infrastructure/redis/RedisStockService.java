@@ -55,9 +55,9 @@ public class RedisStockService implements StockService {
     }
 
     @Override
-    public boolean processPurchase(Long userId, Long saleId, Long productId, int quantity,long ttl) {
+    public boolean processPurchase(String  userId, Long saleId, Long productId, int quantity,long ttl) {
         String stock_key = "stock:%d:%d".formatted(saleId, productId);
-        String purchase_done_key = "purchase_done:%d:%d:%d".formatted(userId, saleId, productId);
+        String purchase_done_key = "purchase_done:%s:%d:%d".formatted(userId, saleId, productId);
         Long result = redisTemplate.execute(
                 SCRIPT,
                 List.of(stock_key, purchase_done_key),
@@ -83,9 +83,9 @@ public class RedisStockService implements StockService {
     }
 
     @Override
-    public void revertPurchase(Long userId,Long saleId, Long productId, int quantity) {
+    public void revertPurchase(String userId,Long saleId, Long productId, int quantity) {
         String stockKey = "stock:%d:%d".formatted(saleId, productId);
-        String purchaseKey = "purchase_done:%d:%d:%d".formatted(userId, saleId, productId);
+        String purchaseKey = "purchase_done:%s:%d:%d".formatted(userId, saleId, productId);
         Long result = redisTemplate.opsForValue().increment(stockKey,quantity);
         if (result==null){
             throw new InfrastructureException(ErrorCode.REDIS_EXECUTION_FAILED);

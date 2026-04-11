@@ -1,6 +1,6 @@
 package com.flashsale.ordersystem.order.application.port;
 
 public interface StockService {
-    boolean processPurchase(Long userId,Long saleId, Long productId, int quantity,long ttl);
-    void revertPurchase(Long userId, Long saleId, Long productId, int quantity);
+    boolean processPurchase(String userId,Long saleId, Long productId, int quantity,long ttl);
+    void revertPurchase(String userId, Long saleId, Long productId, int quantity);
 }

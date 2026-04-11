@@ -1,6 +1,8 @@
 package com.flashsale.ordersystem.order.domain.model;
 
 import com.flashsale.ordersystem.order.domain.enums.OrderStatus;
+import com.flashsale.ordersystem.sale.domain.Sale;
+import com.flashsale.ordersystem.user.domain.User;
 import jakarta.persistence.*;
 import lombok.AllArgsConstructor;
 import lombok.Getter;
@@ -20,12 +22,13 @@ public class Order {
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long id;
+    @ManyToOne(fetch = FetchType.LAZY)
+    @JoinColumn(name = "user_id", nullable = false)
+    private User user;
 
-    @Column(name = "user_id", nullable = false)
-    private Long userId;
-
-    @Column(name = "sale_id", nullable = false)
-    private Long saleId;
+    @ManyToOne(fetch = FetchType.LAZY)
+    @JoinColumn(name = "sale_id", nullable = false)
+    private Sale sale;
 
     @Enumerated(EnumType.STRING)
     @Column(nullable = false)

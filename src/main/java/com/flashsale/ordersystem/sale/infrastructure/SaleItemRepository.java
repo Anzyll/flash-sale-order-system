@@ -13,13 +13,4 @@ import java.util.Optional;
 public interface SaleItemRepository extends JpaRepository<SaleItem,Long> {
     List<SaleItem> findAllBySaleId(Long saleId);
     Optional<SaleItem> findBySaleIdAndProductId(Long saleId,Long productId);
-    @Modifying
-    @Query("""
-UPDATE SaleItem s
-SET s.availableStock = s.availableStock - :qty
-WHERE s.saleId = :saleId
-AND s.productId = :productId
-AND s.availableStock >= :qty
-""")
-    int decrementStock(Long saleId, Long productId,int qty);
 }
