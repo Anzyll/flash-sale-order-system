@@ -1,0 +1,2 @@
+CREATE DATABASE flashsale_db;
+CREATE DATABASE keycloak;

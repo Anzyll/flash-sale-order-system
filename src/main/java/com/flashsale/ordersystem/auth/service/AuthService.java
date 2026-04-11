@@ -22,6 +22,7 @@ import java.util.List;
 public class AuthService {
     private final UserRepository userRepository;
     private final Keycloak keycloak;
+    private static final String APP_REALM = "flash-sale";
     @Value("${keycloak.realm}")
     private String realm;
     @Transactional
@@ -35,7 +36,7 @@ public class AuthService {
         user.setUsername(request.username());
         user.setEnabled(true);
         user.setEmailVerified(true);
-        Response response = keycloak.realm(realm).users().create(user);
+        Response response = keycloak.realm(APP_REALM).users().create(user);
 
         if (response.getStatus() == 409) {
             throw new CustomException(ErrorCode.EMAIL_ALREADY_EXISTS);
@@ -54,12 +55,12 @@ public class AuthService {
             credential.setValue(request.password());
             credential.setTemporary(false);
 
-            keycloak.realm(realm)
+            keycloak.realm(APP_REALM)
                     .users()
                     .get(keycloakId)
                     .resetPassword(credential);
 
-            var realmResource = keycloak.realm(realm);
+            var realmResource = keycloak.realm(APP_REALM);
             var userResource = realmResource.users().get(keycloakId);
 
             RoleRepresentation userRole = realmResource.roles().get("USER").toRepresentation();
@@ -72,7 +73,7 @@ public class AuthService {
             userRepository.save(dbUser);
 
         } catch (Exception e) {
-            keycloak.realm(realm).users().delete(keycloakId);
+            keycloak.realm(APP_REALM).users().delete(keycloakId);
             throw e;
         }
     }
