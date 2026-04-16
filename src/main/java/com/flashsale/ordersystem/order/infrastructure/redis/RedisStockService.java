@@ -91,5 +91,6 @@ public class RedisStockService implements StockService {
             throw new InfrastructureException(ErrorCode.REDIS_EXECUTION_FAILED);
         }
         redisTemplate.delete(purchaseKey);
+
     }
 }

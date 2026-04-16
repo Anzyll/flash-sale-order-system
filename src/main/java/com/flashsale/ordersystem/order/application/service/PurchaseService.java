@@ -2,10 +2,12 @@ package com.flashsale.ordersystem.order.application.service;
 
 import com.flashsale.ordersystem.common.exception.CustomException;
 import com.flashsale.ordersystem.common.exception.ErrorCode;
+import com.flashsale.ordersystem.order.application.port.OrderEventPublisher;
 import com.flashsale.ordersystem.order.application.port.StockService;
 import com.flashsale.ordersystem.order.domain.enums.OrderStatus;
 import com.flashsale.ordersystem.order.domain.model.Order;
 import com.flashsale.ordersystem.order.domain.model.OrderItem;
+import com.flashsale.ordersystem.order.domain.model.OrderPlacedEvent;
 import com.flashsale.ordersystem.order.infrastructure.repository.OrderItemRepository;
 import com.flashsale.ordersystem.order.infrastructure.repository.OrderRepository;
 import com.flashsale.ordersystem.sale.domain.Sale;
@@ -24,14 +26,13 @@ import java.time.LocalDateTime;
 @RequiredArgsConstructor
 @Slf4j
 public class PurchaseService {
-    private final OrderRepository orderRepository;
-    private final OrderItemRepository orderItemRepository;
     private final SaleRepository saleRepository;
     private  final SaleItemRepository saleItemRepository;
     private final StockService stockService;
     private final UserService userService;
+    private final OrderEventPublisher orderEventPublisher;
 
-    public Order purchase(String userId,Long saleId, Long productId) {
+    public void purchase(String userId,Long saleId, Long productId) {
         int quantity = 1;
         User user = userService.getUserOrThrow(userId);
         Sale sale = saleRepository.findById(saleId)
@@ -53,34 +54,10 @@ public class PurchaseService {
             if (!success) {
                 throw new CustomException(ErrorCode.INSUFFICIENT_STOCK);
             }
+            log.info("Publishing order event for product {}", productId);
+            OrderPlacedEvent event = new OrderPlacedEvent(userId,saleId,productId);
+            orderEventPublisher.publish(event);
 
-            Order order = new Order();
-            order.setSale(sale);
-            order.setUser(user);
-            order.setStatus(OrderStatus.PENDING);
-            order.setCreatedAt(LocalDateTime.now());
-            order.setTotalAmount((item.getSalePrice()));
-            Order savedOrder;
-            try {
-            savedOrder = orderRepository.save(order);
-            } catch (Exception e) {
-            stockService.revertPurchase(userId,saleId, productId, quantity);
-            throw e;
-            }
-
-            OrderItem orderItem = new OrderItem();
-            orderItem.setOrder(savedOrder);
-            orderItem.setProduct(item.getProduct());
-            orderItem.setQuantity(quantity);
-            orderItem.setPrice(item.getSalePrice());
-
-            try {
-                orderItemRepository.save(orderItem);
-            } catch (org.springframework.dao.DataIntegrityViolationException e) {
-                stockService.revertPurchase(userId,saleId,productId,quantity);
-                throw new CustomException(ErrorCode.ALREADY_PURCHASED);
-            }
-            return savedOrder;
     }
 
     private long calculateTTL(Sale sale) {
