@@ -11,6 +11,8 @@ import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.security.oauth2.jwt.Jwt;
 import org.springframework.web.bind.annotation.*;
 
+import java.util.UUID;
+
 @RestController
 @RequestMapping("/api/v1/sales/{saleId}/purchase")
 @PreAuthorize("hasRole('USER')")
@@ -22,7 +24,8 @@ public class PurchaseController {
     public String purchase(@PathVariable Long saleId, @Valid @RequestBody PurchaseRequest request){
         Jwt jwt = (Jwt) SecurityContextHolder.getContext().getAuthentication().getPrincipal();
         String userId = jwt.getSubject();
-        purchaseService.purchase(userId,saleId,request.productId());
+        String correlationId = UUID.randomUUID().toString();
+        purchaseService.purchase(userId,saleId,request.productId(),correlationId);
         return "Order is being processed";
     }
 }

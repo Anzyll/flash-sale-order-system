@@ -1,6 +1,7 @@
 package com.flashsale.ordersystem.common.exception;
 
 import lombok.Getter;
+import org.springframework.http.HttpStatus;
 
 @Getter
 public enum ErrorCode {
@@ -18,7 +19,8 @@ public enum ErrorCode {
     DUPLICATE_REQUEST(409,"duplicate request"),
     USER_NOT_FOUND(404,"user not found"),
     EMAIL_ALREADY_EXISTS(409,"email already exists"),
-    REDIS_EXECUTION_FAILED(500,"redis execution failed");
+    REDIS_EXECUTION_FAILED(500,"redis execution failed"),
+    KAFKA_UNAVAILABLE(500, "Kafka broker unavailable");
 
     private final int status;
     private final String message;

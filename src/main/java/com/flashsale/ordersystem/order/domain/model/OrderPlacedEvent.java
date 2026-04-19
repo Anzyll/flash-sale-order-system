@@ -5,11 +5,15 @@ import lombok.AllArgsConstructor;
 import lombok.Getter;
 import lombok.NoArgsConstructor;
 
+import java.util.UUID;
+
 @NoArgsConstructor
 @AllArgsConstructor
 @Getter
 public class OrderPlacedEvent {
+    private String eventId;
     private String userId;
     private Long saleId;
     private Long productId;
+    private Long timestamp;
 }

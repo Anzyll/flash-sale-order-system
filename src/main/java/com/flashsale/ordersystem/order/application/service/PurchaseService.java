@@ -21,6 +21,7 @@ import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
 
 import java.time.LocalDateTime;
+import java.util.UUID;
 
 @Service
 @RequiredArgsConstructor
@@ -32,9 +33,9 @@ public class PurchaseService {
     private final UserService userService;
     private final OrderEventPublisher orderEventPublisher;
 
-    public void purchase(String userId,Long saleId, Long productId) {
+    public void purchase(String userId,Long saleId, Long productId,String correlationId) {
         int quantity = 1;
-        User user = userService.getUserOrThrow(userId);
+        userService.getUserOrThrow(userId);
         Sale sale = saleRepository.findById(saleId)
                 .orElseThrow(()-> new CustomException(ErrorCode.SALE_NOT_FOUND));
 
@@ -54,9 +55,10 @@ public class PurchaseService {
             if (!success) {
                 throw new CustomException(ErrorCode.INSUFFICIENT_STOCK);
             }
-            log.info("Publishing order event for product {}", productId);
-            OrderPlacedEvent event = new OrderPlacedEvent(userId,saleId,productId);
-            orderEventPublisher.publish(event);
+          log.info("Publishing order event. correlationId={}, userId={}, productId={}",
+                correlationId, userId, productId);
+            OrderPlacedEvent event = new OrderPlacedEvent(UUID.randomUUID().toString(),userId,saleId,productId,System.currentTimeMillis());
+            orderEventPublisher.publish(event,correlationId);
 
     }
 

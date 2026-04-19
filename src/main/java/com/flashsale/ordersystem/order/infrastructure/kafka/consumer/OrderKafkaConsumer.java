@@ -2,6 +2,7 @@ package com.flashsale.ordersystem.order.infrastructure.kafka.consumer;
 
 import com.flashsale.ordersystem.common.exception.CustomException;
 import com.flashsale.ordersystem.common.exception.ErrorCode;
+import com.flashsale.ordersystem.order.application.port.StockService;
 import com.flashsale.ordersystem.order.domain.enums.OrderStatus;
 import com.flashsale.ordersystem.order.domain.model.Order;
 import com.flashsale.ordersystem.order.domain.model.OrderItem;
@@ -16,9 +17,13 @@ import com.flashsale.ordersystem.user.application.UserService;
 import com.flashsale.ordersystem.user.domain.User;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.data.redis.core.StringRedisTemplate;
 import org.springframework.kafka.annotation.KafkaListener;
+import org.springframework.messaging.handler.annotation.Header;
 import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
 
+import java.time.Duration;
 import java.time.LocalDateTime;
 
 @Service
@@ -31,41 +36,81 @@ public class OrderKafkaConsumer {
     private final SaleRepository saleRepository;
     private final SaleItemRepository saleItemRepository;
     private final UserService userService;
+    private final StringRedisTemplate redisTemplate;
+    private final StockService stockService;
 
     @KafkaListener(
             topics = "order.placed",
             groupId = "order-processing-group"
     )
-    public void consume(OrderPlacedEvent event) {
+    @Transactional
+    public void consume(OrderPlacedEvent event, @Header("correlationId") String correlationId) {
+        String eventKey = "event_processed:"+event.getEventId();
 
-        log.info("Processing order for product {}", event.getProductId());
+        Boolean exists = redisTemplate.hasKey(eventKey);
+        if (Boolean.TRUE.equals(exists)){
+            log.warn("Duplicate event skipped. eventId={}, correlationId={}",
+                    event.getEventId(), correlationId);
+            return;
+        }
 
-        User user = userService.getUserOrThrow(event.getUserId());
+        log.info("Processing order. eventId={}, correlationId={}, productId={}",
+                event.getEventId(),
+                correlationId,
+                event.getProductId());
 
-        Sale sale = saleRepository.findById(event.getSaleId())
-                .orElseThrow(() -> new CustomException(ErrorCode.SALE_NOT_FOUND));
+        try {
+            User user = userService.getUserOrThrow(event.getUserId());
 
-        SaleItem item = saleItemRepository
-                .findBySaleIdAndProductId(event.getSaleId(), event.getProductId())
-                .orElseThrow(() -> new CustomException(ErrorCode.PRODUCT_NOT_FOUND));
+            Sale sale = saleRepository.findById(event.getSaleId())
+                    .orElseThrow(() -> new CustomException(ErrorCode.SALE_NOT_FOUND));
 
-        Order order = new Order();
-        order.setUser(user);
-        order.setSale(sale);
-        order.setStatus(OrderStatus.PENDING);
-        order.setCreatedAt(LocalDateTime.now());
-        order.setTotalAmount(item.getSalePrice());
+            SaleItem item = saleItemRepository
+                    .findBySaleIdAndProductId(event.getSaleId(), event.getProductId())
+                    .orElseThrow(() -> new CustomException(ErrorCode.PRODUCT_NOT_FOUND));
 
-        Order savedOrder = orderRepository.save(order);
+            Order order = new Order();
+            order.setUser(user);
+            order.setSale(sale);
+            order.setStatus(OrderStatus.PENDING);
+            order.setCreatedAt(LocalDateTime.now());
+            order.setTotalAmount(item.getSalePrice());
 
-        OrderItem orderItem = new OrderItem();
-        orderItem.setOrder(savedOrder);
-        orderItem.setProduct(item.getProduct());
-        orderItem.setQuantity(1);
-        orderItem.setPrice(item.getSalePrice());
+            Order savedOrder = orderRepository.save(order);
 
-        orderItemRepository.save(orderItem);
+            OrderItem orderItem = new OrderItem();
+            orderItem.setOrder(savedOrder);
+            orderItem.setProduct(item.getProduct());
+            orderItem.setQuantity(1);
+            orderItem.setPrice(item.getSalePrice());
 
-        log.info("Order saved successfully for product {}", event.getProductId());
+            orderItemRepository.save(orderItem);
+
+            log.info("force failure triggered");
+
+            redisTemplate.opsForValue().set(
+                    eventKey,
+                    "1",
+                    Duration.ofHours(24)
+            );
+            log.info("Order saved successfully. eventId={} correlationId={}", event.getEventId(), correlationId);
+        }
+        catch (Exception e){
+            log.error("Order processing failed. eventId={} correlationId={}", event.getEventId(), correlationId,e);
+            String purchaseKey = "purchase_done:%s:%d:%d"
+                    .formatted(event.getUserId(), event.getSaleId(), event.getProductId());
+
+            Boolean purchaseExists = redisTemplate.hasKey(purchaseKey);
+
+            if (Boolean.TRUE.equals(purchaseExists)) {
+                stockService.revertPurchase(
+                        event.getUserId(),
+                        event.getSaleId(),
+                        event.getProductId(),
+                        1
+                );
+            }
+            throw e;
+        }
     }
 }
