@@ -41,7 +41,8 @@ public class OrderKafkaConsumer {
 
     @KafkaListener(
             topics = "order.placed",
-            groupId = "order-processing-group"
+            groupId = "order-processing-group",
+            concurrency = "3"
     )
     @Transactional
     public void consume(OrderPlacedEvent event, @Header("correlationId") String correlationId) {
@@ -85,8 +86,6 @@ public class OrderKafkaConsumer {
             orderItem.setPrice(item.getSalePrice());
 
             orderItemRepository.save(orderItem);
-
-            log.info("force failure triggered");
 
             redisTemplate.opsForValue().set(
                     eventKey,

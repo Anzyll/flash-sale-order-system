@@ -57,7 +57,12 @@ public class PurchaseService {
             }
           log.info("Publishing order event. correlationId={}, userId={}, productId={}",
                 correlationId, userId, productId);
-            OrderPlacedEvent event = new OrderPlacedEvent(UUID.randomUUID().toString(),userId,saleId,productId,System.currentTimeMillis());
+            OrderPlacedEvent event = new OrderPlacedEvent(
+                    UUID.randomUUID().toString(),
+                    userId,
+                    saleId,
+                    productId,
+                    System.currentTimeMillis());
             orderEventPublisher.publish(event,correlationId);
 
     }
