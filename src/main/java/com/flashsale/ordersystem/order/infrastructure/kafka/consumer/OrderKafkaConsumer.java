@@ -17,6 +17,7 @@ import com.flashsale.ordersystem.user.application.UserService;
 import com.flashsale.ordersystem.user.domain.User;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
+import org.aspectj.weaver.ast.Or;
 import org.springframework.data.redis.core.StringRedisTemplate;
 import org.springframework.kafka.annotation.KafkaListener;
 import org.springframework.messaging.handler.annotation.Header;
@@ -60,6 +61,8 @@ public class OrderKafkaConsumer {
                 correlationId,
                 event.getProductId());
 
+        Order order = null;
+
         try {
             User user = userService.getUserOrThrow(event.getUserId());
 
@@ -70,10 +73,10 @@ public class OrderKafkaConsumer {
                     .findBySaleIdAndProductId(event.getSaleId(), event.getProductId())
                     .orElseThrow(() -> new CustomException(ErrorCode.PRODUCT_NOT_FOUND));
 
-            Order order = new Order();
+            order = new Order();
             order.setUser(user);
             order.setSale(sale);
-            order.setStatus(OrderStatus.PENDING);
+            order.setStatus(OrderStatus.CONFIRMED);
             order.setCreatedAt(LocalDateTime.now());
             order.setTotalAmount(item.getSalePrice());
 
@@ -96,12 +99,14 @@ public class OrderKafkaConsumer {
         }
         catch (Exception e){
             log.error("Order processing failed. eventId={} correlationId={}", event.getEventId(), correlationId,e);
+
             String purchaseKey = "purchase_done:%s:%d:%d"
                     .formatted(event.getUserId(), event.getSaleId(), event.getProductId());
 
             Boolean purchaseExists = redisTemplate.hasKey(purchaseKey);
 
             if (Boolean.TRUE.equals(purchaseExists)) {
+                log.warn("Reverting stock for eventId={}", event.getEventId());
                 stockService.revertPurchase(
                         event.getUserId(),
                         event.getSaleId(),
@@ -109,7 +114,17 @@ public class OrderKafkaConsumer {
                         1
                 );
             }
-            throw e;
+
+            if(order!=null && order.getUser()!=null){
+                order.setStatus(OrderStatus.FAILED);
+                orderRepository.save(order);
+            }
+
+            redisTemplate.opsForValue().set(
+                    eventKey,
+                    "1",
+                    Duration.ofHours(24)
+            );
         }
     }
 }
