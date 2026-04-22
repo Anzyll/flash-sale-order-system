@@ -1,0 +1,6 @@
+ALTER TABLE flash_sales
+ADD COLUMN status VARCHAR(20) NOT NULL DEFAULT 'PENDING';
+
+ALTER TABLE flash_sales
+ADD CONSTRAINT check_sale_status
+CHECK (status IN ('PENDING', 'ACTIVE', 'ENDED'));

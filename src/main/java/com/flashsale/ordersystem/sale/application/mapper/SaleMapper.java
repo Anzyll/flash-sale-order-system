@@ -3,7 +3,7 @@ package com.flashsale.ordersystem.sale.application.mapper;
 
 import com.flashsale.ordersystem.sale.presentation.dto.CreateSaleRequest;
 import com.flashsale.ordersystem.sale.presentation.dto.SaleResponse;
-import com.flashsale.ordersystem.sale.domain.Sale;
+import com.flashsale.ordersystem.sale.domain.model.Sale;
 
 public class SaleMapper {
     public static Sale toEntity(CreateSaleRequest request) {

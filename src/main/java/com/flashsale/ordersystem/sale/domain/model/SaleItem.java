@@ -1,4 +1,4 @@
-package com.flashsale.ordersystem.sale.domain;
+package com.flashsale.ordersystem.sale.domain.model;
 
 import com.flashsale.ordersystem.product.domain.Product;
 import jakarta.persistence.*;

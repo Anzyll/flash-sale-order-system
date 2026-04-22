@@ -18,7 +18,6 @@ public class RedisStockService implements StockService {
                    local stock = tonumber(redis.call('GET', KEYS[1]))
                    local purchased = tonumber(redis.call('EXISTS', KEYS[2]))
                    local qty = tonumber(ARGV[1])
-                   local ttl = tonumber(ARGV[2])
             
                    if purchased == 1 then
                       return -4
@@ -37,7 +36,12 @@ public class RedisStockService implements StockService {
                    end
             
                    redis.call('DECRBY',KEYS[1],qty)
-                   redis.call('SET',KEYS[2],"1",'EX',ttl)
+                   local ttl = redis.call('TTL', KEYS[1])
+                   if ttl > 0 then
+                      redis.call('SET', KEYS[2], "1", 'EX', ttl)
+                   else
+                      redis.call('SET', KEYS[2], "1")
+                   end
                    return 1
             
             """;
@@ -55,14 +59,13 @@ public class RedisStockService implements StockService {
     }
 
     @Override
-    public boolean processPurchase(String  userId, Long saleId, Long productId, int quantity,long ttl) {
+    public boolean processPurchase(String  userId, Long saleId, Long productId, int quantity) {
         String stock_key = "stock:%d:%d".formatted(saleId, productId);
         String purchase_done_key = "purchase_done:%s:%d:%d".formatted(userId, saleId, productId);
         Long result = redisTemplate.execute(
                 SCRIPT,
                 List.of(stock_key, purchase_done_key),
-                String.valueOf(quantity),
-                String.valueOf(ttl)
+                String.valueOf(quantity)
         );
         if (result == null) {
             throw new InfrastructureException(ErrorCode.REDIS_EXECUTION_FAILED);

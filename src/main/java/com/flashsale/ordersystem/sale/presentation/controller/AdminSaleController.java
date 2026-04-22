@@ -2,8 +2,8 @@ package com.flashsale.ordersystem.sale.presentation.controller;
 
 import com.flashsale.ordersystem.sale.application.mapper.SaleItemMapper;
 import com.flashsale.ordersystem.sale.application.mapper.SaleMapper;
-import com.flashsale.ordersystem.sale.domain.Sale;
-import com.flashsale.ordersystem.sale.domain.SaleItem;
+import com.flashsale.ordersystem.sale.domain.model.Sale;
+import com.flashsale.ordersystem.sale.domain.model.SaleItem;
 import com.flashsale.ordersystem.sale.presentation.dto.AddProductToSaleRequest;
 import com.flashsale.ordersystem.sale.presentation.dto.CreateSaleRequest;
 import com.flashsale.ordersystem.sale.presentation.dto.SaleItemResponse;

@@ -1,7 +1,6 @@
 package com.flashsale.ordersystem.common.exception;
 
 import lombok.Getter;
-import org.springframework.http.HttpStatus;
 
 @Getter
 public enum ErrorCode {
@@ -9,13 +8,13 @@ public enum ErrorCode {
     SALE_NOT_FOUND(404,"sale not found"),
     PRODUCT_ALREADY_IN_SALE(409,"product already in sale"),
     SALE_EXPIRED(400,"sale expired"),
+    SALE_NOT_ACTIVE(400,"sale not active"),
     INVALID_PRICE(400,"invalid price"),
     INVALID_STOCK(400,"invalid stock"),
     INSUFFICIENT_STOCK(409,"insufficient stock"),
     ALREADY_PURCHASED(409,"product is already purchased"),
     INVALID_QUANTITY(400, "invalid quantity"),
     STOCK_NOT_INITIALIZED(500, "stock not initialized in redis"),
-    SALE_NOT_STARTED(400,"sale not started"),
     DUPLICATE_REQUEST(409,"duplicate request"),
     USER_NOT_FOUND(404,"user not found"),
     EMAIL_ALREADY_EXISTS(409,"email already exists"),

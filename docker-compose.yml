@@ -5,6 +5,7 @@ services:
   postgres:
     image: postgres:15
     container_name: postgres
+    restart: unless-stopped
     environment:
       POSTGRES_USER: postgres
       POSTGRES_PASSWORD: password
@@ -18,12 +19,14 @@ services:
   redis:
     image: redis:7
     container_name: redis
+    restart: unless-stopped
     ports:
       - "6379:6379"
 
   keycloak:
     image: quay.io/keycloak/keycloak:latest
     container_name: keycloak
+    restart: unless-stopped
     command: start-dev
     environment:
       KC_DB: postgres
@@ -36,14 +39,16 @@ services:
       - "8081:8080"
     depends_on:
       - postgres
-    extra_hosts:
-      - "localhost:host-gateway"
+
 
   app:
     build: .
     container_name: flashsale-app
+    restart: unless-stopped
     ports:
       - "8000:8000"
+    environment:
+      - SPRING_PROFILES_ACTIVE=docker
     depends_on:
       - postgres
       - redis
@@ -52,20 +57,25 @@ services:
 
   zookeeper:
     image: confluentinc/cp-zookeeper:7.5.0
+    restart: unless-stopped
     environment:
       ZOOKEEPER_CLIENT_PORT: 2181
 
   kafka:
     image: confluentinc/cp-kafka:7.5.0
+    restart: unless-stopped
     depends_on:
       - zookeeper
     ports:
       - "9092:9092"
+      - "29092:29092"
 
     environment:
       KAFKA_ZOOKEEPER_CONNECT: zookeeper:2181
-      KAFKA_ADVERTISED_LISTENERS: PLAINTEXT://kafka:9092
-      KAFKA_LISTENERS: PLAINTEXT://0.0.0.0:9092
+      KAFKA_LISTENERS: PLAINTEXT://0.0.0.0:9092,PLAINTEXT_HOST://0.0.0.0:29092
+      KAFKA_ADVERTISED_LISTENERS: PLAINTEXT://kafka:9092,PLAINTEXT_HOST://localhost:29092
+      KAFKA_LISTENER_SECURITY_PROTOCOL_MAP: PLAINTEXT:PLAINTEXT,PLAINTEXT_HOST:PLAINTEXT
+      KAFKA_INTER_BROKER_LISTENER_NAME: PLAINTEXT
       KAFKA_OFFSETS_TOPIC_REPLICATION_FACTOR: 1
 
 volumes:

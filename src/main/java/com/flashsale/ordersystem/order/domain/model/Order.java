@@ -1,7 +1,7 @@
 package com.flashsale.ordersystem.order.domain.model;
 
 import com.flashsale.ordersystem.order.domain.enums.OrderStatus;
-import com.flashsale.ordersystem.sale.domain.Sale;
+import com.flashsale.ordersystem.sale.domain.model.Sale;
 import com.flashsale.ordersystem.user.domain.User;
 import jakarta.persistence.*;
 import lombok.AllArgsConstructor;

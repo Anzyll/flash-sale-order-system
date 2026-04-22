@@ -1,10 +1,10 @@
 package com.flashsale.ordersystem.sale.application.mapper;
 
 import com.flashsale.ordersystem.product.domain.Product;
-import com.flashsale.ordersystem.sale.domain.Sale;
+import com.flashsale.ordersystem.sale.domain.model.Sale;
 import com.flashsale.ordersystem.sale.presentation.dto.AddProductToSaleRequest;
 import com.flashsale.ordersystem.sale.presentation.dto.SaleItemResponse;
-import com.flashsale.ordersystem.sale.domain.SaleItem;
+import com.flashsale.ordersystem.sale.domain.model.SaleItem;
 
 
 public class SaleItemMapper {
