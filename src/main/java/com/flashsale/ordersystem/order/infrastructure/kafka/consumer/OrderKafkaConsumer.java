@@ -19,7 +19,9 @@ import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.data.redis.core.StringRedisTemplate;
 import org.springframework.kafka.annotation.KafkaListener;
+import org.springframework.kafka.annotation.RetryableTopic;
 import org.springframework.messaging.handler.annotation.Header;
+import org.springframework.retry.annotation.Backoff;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -39,6 +41,11 @@ public class OrderKafkaConsumer {
     private final StringRedisTemplate redisTemplate;
     private final StockService stockService;
 
+    @RetryableTopic(
+            attempts = "4",
+            backoff = @Backoff(delay = 1000,multiplier = 2),
+            dltTopicSuffix = ".DLQ"
+    )
     @KafkaListener(
             topics = "order.placed",
             groupId = "order-processing-group",
@@ -88,7 +95,9 @@ public class OrderKafkaConsumer {
             orderItem.setPrice(item.getSalePrice());
 
             orderItemRepository.save(orderItem);
-
+            if (true){
+                throw new RuntimeException("forced failure of consumer");
+            }
             redisTemplate.opsForValue().set(
                     eventKey,
                     "1",
@@ -118,12 +127,7 @@ public class OrderKafkaConsumer {
                 order.setStatus(OrderStatus.FAILED);
                 orderRepository.save(order);
             }
-
-            redisTemplate.opsForValue().set(
-                    eventKey,
-                    "1",
-                    Duration.ofHours(24)
-            );
+           throw e;
         }
     }
 }
