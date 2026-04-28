@@ -2,6 +2,7 @@ package com.flashsale.ordersystem.order.application.service;
 
 import com.flashsale.ordersystem.common.exception.CustomException;
 import com.flashsale.ordersystem.common.exception.ErrorCode;
+import com.flashsale.ordersystem.common.exception.InfrastructureException;
 import com.flashsale.ordersystem.order.application.port.OrderEventPublisher;
 import com.flashsale.ordersystem.order.application.port.StockService;
 import com.flashsale.ordersystem.order.domain.model.OrderPlacedEvent;
@@ -12,8 +13,7 @@ import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.data.redis.core.StringRedisTemplate;
 import org.springframework.stereotype.Service;
-
-import java.util.UUID;
+import java.time.Duration;
 
 @Service
 @RequiredArgsConstructor
@@ -28,30 +28,46 @@ public class PurchaseService {
     public void purchase(String userId,Long saleId, Long productId,String correlationId) {
         int quantity = 1;
         userService.getUserOrThrow(userId);
-        String active = redisTemplate.opsForValue().get("sale_active:"+saleId);
-        if(!"true".equals(active)){
+        String key = "sale_active:" + saleId;
+        String active = redisTemplate.opsForValue().get(key);
+
+        if (active == null) {
+            saleRepository.findById(saleId)
+                    .orElseThrow(() -> new CustomException(ErrorCode.SALE_NOT_FOUND));
+
+            redisTemplate.opsForValue().set(key, "true", Duration.ofHours(24));
+
+        } else if (!"true".equals(active)) {
             throw new CustomException(ErrorCode.SALE_NOT_ACTIVE);
         }
-        saleRepository.findById(saleId)
-                .orElseThrow(()-> new CustomException(ErrorCode.SALE_NOT_FOUND));
 
         saleItemRepository.findBySaleIdAndProductId(saleId,productId)
                 .orElseThrow(()->new CustomException(ErrorCode.PRODUCT_NOT_FOUND));
 
-            boolean success = stockService.processPurchase(userId,saleId, productId, quantity);
-            if (!success) {
+            boolean success;
+            try{
+                success = stockService.processPurchase(userId,saleId, productId, quantity);
+            }
+            catch (InfrastructureException e){
+                if (e.getErrorCode()==ErrorCode.STOCK_NOT_INITIALIZED) {
+                    stockService.recoverStock(saleId,productId);
+                   success = stockService.processPurchase(userId, saleId, productId, quantity);
+                }
+                else {
+                    throw e;
+                }
+            }
+            if (!success){
                 throw new CustomException(ErrorCode.INSUFFICIENT_STOCK);
             }
           log.info("Publishing order event. correlationId={}, userId={}, productId={}",
                 correlationId, userId, productId);
             OrderPlacedEvent event = new OrderPlacedEvent(
-                    UUID.randomUUID().toString(),
+                    correlationId,
                     userId,
                     saleId,
                     productId,
                     System.currentTimeMillis());
             orderEventPublisher.publish(event,correlationId);
-
     }
-
 }

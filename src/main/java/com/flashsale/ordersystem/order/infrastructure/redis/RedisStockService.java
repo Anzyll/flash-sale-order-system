@@ -4,16 +4,28 @@ import com.flashsale.ordersystem.common.exception.CustomException;
 import com.flashsale.ordersystem.common.exception.ErrorCode;
 import com.flashsale.ordersystem.common.exception.InfrastructureException;
 import com.flashsale.ordersystem.order.application.port.StockService;
+import com.flashsale.ordersystem.order.domain.enums.OrderStatus;
+import com.flashsale.ordersystem.order.infrastructure.repository.OrderRepository;
+import com.flashsale.ordersystem.sale.domain.enums.SaleStatus;
+import com.flashsale.ordersystem.sale.domain.model.SaleItem;
+import com.flashsale.ordersystem.sale.infrastructure.SaleItemRepository;
+import jakarta.annotation.PostConstruct;
 import lombok.RequiredArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
 import org.springframework.data.redis.core.StringRedisTemplate;
 import org.springframework.data.redis.core.script.DefaultRedisScript;
 import org.springframework.stereotype.Service;
+
+import java.time.Duration;
 import java.util.List;
 
 @Service
 @RequiredArgsConstructor
+@Slf4j
 public class RedisStockService implements StockService {
     private final StringRedisTemplate redisTemplate;
+    private final SaleItemRepository saleItemRepository;
+    private final OrderRepository orderRepository;
     private static final String LUA_SCRIPT = """
                    local stock = tonumber(redis.call('GET', KEYS[1]))
                    local purchased = tonumber(redis.call('EXISTS', KEYS[2]))
@@ -26,7 +38,7 @@ public class RedisStockService implements StockService {
                    if qty == nil or qty <= 0 then
                       return -3
                    end
-            
+   
                    if stock == nil then
                       return -2
                    end
@@ -94,6 +106,36 @@ public class RedisStockService implements StockService {
             throw new InfrastructureException(ErrorCode.REDIS_EXECUTION_FAILED);
         }
         redisTemplate.delete(purchaseKey);
+    }
 
+    @Override
+    public void recoverStock(Long saleId,Long productId){
+        String lockKey ="recover_lock:%d:%d".formatted(saleId,productId);
+        if(!Boolean.TRUE.equals(redisTemplate.opsForValue()
+                .setIfAbsent(lockKey, "1", Duration.ofSeconds(5)))){
+            return;
+        }
+        SaleItem item = saleItemRepository.findBySaleIdAndProductId(saleId,productId)
+                .orElseThrow(()->new CustomException(ErrorCode.PRODUCT_NOT_FOUND));
+        int initialStock = item.getTotalStock();
+        long sold = orderRepository.countSoldQuantity(saleId,productId, OrderStatus.CONFIRMED);
+        int remainingStock = Math.max(0,initialStock -  (int) sold);
+        String stockKey = "stock:%d:%d".formatted(saleId,productId);
+        redisTemplate.opsForValue().set(stockKey, String.valueOf(remainingStock));
+        redisTemplate.opsForValue().set("sale_active:"+saleId, String.valueOf(true),Duration.ofHours(24));
+    }
+
+    @PostConstruct
+    public void recoverAllStock() {
+
+        List<SaleItem> items = saleItemRepository.findBySaleStatus(SaleStatus.ACTIVE);
+        for (SaleItem item : items) {
+
+            Long saleId = item.getSale().getId();
+            Long productId = item.getProduct().getId();
+
+            recoverStock(saleId, productId);
+        }
+        log.info("Startup stock recovery completed");
     }
 }

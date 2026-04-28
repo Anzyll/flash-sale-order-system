@@ -1,6 +1,7 @@
 package com.flashsale.ordersystem.order.domain.model;
 
 import com.flashsale.ordersystem.order.domain.enums.OrderStatus;
+import com.flashsale.ordersystem.product.domain.Product;
 import com.flashsale.ordersystem.sale.domain.model.Sale;
 import com.flashsale.ordersystem.user.domain.User;
 import jakarta.persistence.*;
@@ -29,6 +30,10 @@ public class Order {
     @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "sale_id", nullable = false)
     private Sale sale;
+
+    @ManyToOne
+    @JoinColumn(name = "product_id", nullable = false)
+    private Product product;
 
     @Enumerated(EnumType.STRING)
     @Column(nullable = false)

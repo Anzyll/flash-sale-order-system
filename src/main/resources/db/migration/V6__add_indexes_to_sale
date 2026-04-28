@@ -1,2 +1,0 @@
-CREATE INDEX idx_sale_start ON sale(start_time, status);
-CREATE INDEX idx_sale_end ON sale(end_time, status);

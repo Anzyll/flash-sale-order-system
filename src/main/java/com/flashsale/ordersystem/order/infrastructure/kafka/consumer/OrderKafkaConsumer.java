@@ -17,6 +17,7 @@ import com.flashsale.ordersystem.user.application.UserService;
 import com.flashsale.ordersystem.user.domain.User;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.dao.DataIntegrityViolationException;
 import org.springframework.data.redis.core.StringRedisTemplate;
 import org.springframework.kafka.annotation.KafkaListener;
 import org.springframework.kafka.annotation.RetryableTopic;
@@ -24,7 +25,6 @@ import org.springframework.messaging.handler.annotation.Header;
 import org.springframework.retry.annotation.Backoff;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
-
 import java.time.Duration;
 import java.time.LocalDateTime;
 
@@ -82,6 +82,7 @@ public class OrderKafkaConsumer {
             order = new Order();
             order.setUser(user);
             order.setSale(sale);
+            order.setProduct(item.getProduct());
             order.setStatus(OrderStatus.CONFIRMED);
             order.setCreatedAt(LocalDateTime.now());
             order.setTotalAmount(item.getSalePrice());
@@ -90,44 +91,43 @@ public class OrderKafkaConsumer {
 
             OrderItem orderItem = new OrderItem();
             orderItem.setOrder(savedOrder);
-            orderItem.setProduct(item.getProduct());
+            orderItem.setProduct(savedOrder.getProduct());
             orderItem.setQuantity(1);
             orderItem.setPrice(item.getSalePrice());
 
             orderItemRepository.save(orderItem);
-            if (true){
-                throw new RuntimeException("forced failure of consumer");
-            }
+
             redisTemplate.opsForValue().set(
                     eventKey,
                     "1",
                     Duration.ofHours(24)
             );
+
             log.info("Order saved successfully. eventId={} correlationId={}", event.getEventId(), correlationId);
         }
-        catch (Exception e){
-            log.error("Order processing failed. eventId={} correlationId={}", event.getEventId(), correlationId,e);
+        catch (DataIntegrityViolationException e) {
 
-            String purchaseKey = "purchase_done:%s:%d:%d"
-                    .formatted(event.getUserId(), event.getSaleId(), event.getProductId());
+            log.warn("Duplicate order detected. eventId={}, productId={}, correlationId={}",
+                    event.getEventId(), event.getProductId(), correlationId);
+            return;
+        }
+        catch (Exception e) {
 
-            Boolean purchaseExists = redisTemplate.hasKey(purchaseKey);
+            log.error("Order processing failed. eventId={} correlationId={}",
+                    event.getEventId(), correlationId, e);
 
-            if (Boolean.TRUE.equals(purchaseExists)) {
-                log.warn("Reverting stock for eventId={}", event.getEventId());
-                stockService.revertPurchase(
-                        event.getUserId(),
-                        event.getSaleId(),
-                        event.getProductId(),
-                        1
-                );
-            }
+            stockService.revertPurchase(
+                    event.getUserId(),
+                    event.getSaleId(),
+                    event.getProductId(),
+                    1
+            );
 
-            if(order!=null && order.getUser()!=null){
+            if (order != null && order.getUser() != null) {
                 order.setStatus(OrderStatus.FAILED);
                 orderRepository.save(order);
             }
-           throw e;
+            throw e;
         }
     }
 }

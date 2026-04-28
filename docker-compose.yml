@@ -22,6 +22,9 @@ services:
     restart: unless-stopped
     ports:
       - "6379:6379"
+    volumes:
+      - redis_data:/data
+    command: ["redis-server", "--save", "60", "1000", "--appendonly", "yes"]
 
   keycloak:
     image: quay.io/keycloak/keycloak:latest
@@ -80,3 +83,4 @@ services:
 
 volumes:
   postgres_data:
+  redis_data:

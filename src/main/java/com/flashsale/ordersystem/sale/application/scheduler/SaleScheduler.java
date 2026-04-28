@@ -51,7 +51,7 @@ public class SaleScheduler {
             String key = "stock:"+sale.getId()+":"+item.getProduct().getId();
             redisTemplate.opsForValue().set(
                     key,
-                    String.valueOf(item.getAvailableStock()),
+                    String.valueOf(item.getTotalStock()),
                     java.time.Duration.ofSeconds(ttl)
                     );
         }
@@ -75,25 +75,12 @@ public class SaleScheduler {
 
     private void deactivateSale(Sale sale){
         log.info("Ending sale {}",sale.getId());
-        List<SaleItem> items = saleItemRepository.findAllBySaleId(sale.getId());
-        for(SaleItem item : items){
-            String key = "stock:"+sale.getId()+":"+item.getProduct().getId();
-            String stock = redisTemplate.opsForValue().get(key);
-            if(stock!=null){
-                int remainingStock = Integer.parseInt(stock);
-                item.setAvailableStock(remainingStock);
-            }
-
-        }
         redisTemplate.delete("sale_active:"+sale.getId());
-
+        List<SaleItem> items = saleItemRepository.findAllBySaleId(sale.getId());
         for (SaleItem item : items) {
             String key = "stock:" + sale.getId() + ":" + item.getProduct().getId();
             redisTemplate.delete(key);
         }
-
-        saleItemRepository.saveAll(items);
-
         sale.setStatus(SaleStatus.ENDED);
         saleRepository.save(sale);
     }
