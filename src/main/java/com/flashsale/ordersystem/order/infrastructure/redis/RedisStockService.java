@@ -7,6 +7,7 @@ import com.flashsale.ordersystem.order.application.port.StockService;
 import com.flashsale.ordersystem.order.domain.enums.OrderStatus;
 import com.flashsale.ordersystem.order.infrastructure.repository.OrderRepository;
 import com.flashsale.ordersystem.sale.domain.enums.SaleStatus;
+import com.flashsale.ordersystem.sale.domain.model.Sale;
 import com.flashsale.ordersystem.sale.domain.model.SaleItem;
 import com.flashsale.ordersystem.sale.infrastructure.SaleItemRepository;
 import jakarta.annotation.PostConstruct;
@@ -17,6 +18,7 @@ import org.springframework.data.redis.core.script.DefaultRedisScript;
 import org.springframework.stereotype.Service;
 
 import java.time.Duration;
+import java.time.LocalDateTime;
 import java.util.List;
 
 @Service
@@ -150,9 +152,20 @@ public class RedisStockService implements StockService {
         redisTemplate.opsForValue()
                 .set(stockKey, String.valueOf(remainingStock), Duration.ofHours(24));
 
-        redisTemplate.opsForValue()
-                .set("sale_active:" + saleId, "true", Duration.ofHours(24));
+        Sale sale = item.getSale();
 
+        long ttlSeconds = Duration.between(
+                LocalDateTime.now(),
+                sale.getEndTime()
+        ).getSeconds();
+
+        if (ttlSeconds > 0) {
+            redisTemplate.opsForValue()
+                    .set("sale_active:" + saleId, "true", Duration.ofSeconds(ttlSeconds));
+        } else {
+            redisTemplate.opsForValue()
+                    .set("sale_active:" + saleId, "false", Duration.ofMinutes(5));
+        }
         log.info("Stock recovered and set in Redis: {}", remainingStock);
     }
 
