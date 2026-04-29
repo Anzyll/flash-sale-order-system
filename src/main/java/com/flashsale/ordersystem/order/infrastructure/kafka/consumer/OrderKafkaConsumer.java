@@ -7,8 +7,10 @@ import com.flashsale.ordersystem.order.domain.enums.OrderStatus;
 import com.flashsale.ordersystem.order.domain.model.Order;
 import com.flashsale.ordersystem.order.domain.model.OrderItem;
 import com.flashsale.ordersystem.order.domain.model.OrderPlacedEvent;
+import com.flashsale.ordersystem.order.domain.model.ProcessedEvent;
 import com.flashsale.ordersystem.order.infrastructure.repository.OrderItemRepository;
 import com.flashsale.ordersystem.order.infrastructure.repository.OrderRepository;
+import com.flashsale.ordersystem.order.infrastructure.repository.ProcessedEventRepository;
 import com.flashsale.ordersystem.sale.domain.model.Sale;
 import com.flashsale.ordersystem.sale.domain.model.SaleItem;
 import com.flashsale.ordersystem.sale.infrastructure.SaleItemRepository;
@@ -40,6 +42,7 @@ public class OrderKafkaConsumer {
     private final UserService userService;
     private final StringRedisTemplate redisTemplate;
     private final StockService stockService;
+    private final ProcessedEventRepository processedEventRepository;
 
     @RetryableTopic(
             attempts = "4",
@@ -53,17 +56,26 @@ public class OrderKafkaConsumer {
     )
     @Transactional
     public void consume(OrderPlacedEvent event, @Header("correlationId") String correlationId) {
-        String eventKey = "event_processed:"+event.getEventId();
+        String eventId = event.getEventId();
+        String eventKey = "event_processed:"+eventId;
 
-        Boolean exists = redisTemplate.hasKey(eventKey);
-        if (Boolean.TRUE.equals(exists)){
+        Boolean first = redisTemplate.opsForValue().setIfAbsent(eventKey,"1",Duration.ofHours(24));
+        if (!Boolean.TRUE.equals(first)){
             log.warn("Duplicate event skipped. eventId={}, correlationId={}",
-                    event.getEventId(), correlationId);
+                    eventId, correlationId);
+            return;
+        }
+        try{
+            processedEventRepository.save(new ProcessedEvent(eventId));
+        }
+        catch (DataIntegrityViolationException e) {
+            log.warn("Duplicate event detected. eventId={}", eventId);
+            redisTemplate.opsForValue().set(eventKey, "1", Duration.ofHours(24));
             return;
         }
 
         log.info("Processing order. eventId={}, correlationId={}, productId={}",
-                event.getEventId(),
+                eventId,
                 correlationId,
                 event.getProductId());
 
@@ -103,18 +115,19 @@ public class OrderKafkaConsumer {
                     Duration.ofHours(24)
             );
 
-            log.info("Order saved successfully. eventId={} correlationId={}", event.getEventId(), correlationId);
+            log.info("Order saved successfully. eventId={} correlationId={}", eventId, correlationId);
         }
         catch (DataIntegrityViolationException e) {
 
             log.warn("Duplicate order detected. eventId={}, productId={}, correlationId={}",
-                    event.getEventId(), event.getProductId(), correlationId);
+                    eventId, event.getProductId(), correlationId);
+            redisTemplate.opsForValue().set(eventKey, "1", Duration.ofHours(24));
             return;
         }
         catch (Exception e) {
 
             log.error("Order processing failed. eventId={} correlationId={}",
-                    event.getEventId(), correlationId, e);
+                    eventId, correlationId, e);
 
             stockService.revertPurchase(
                     event.getUserId(),
