@@ -34,7 +34,7 @@ public class RedisStockService implements StockService {
                    if purchased == 1 then
                       return -4
                    end
-            
+          
                    if qty == nil or qty <= 0 then
                       return -3
                    end
@@ -46,7 +46,7 @@ public class RedisStockService implements StockService {
                    if stock < qty then
                       return -1
                    end
-            
+           
                    redis.call('DECRBY',KEYS[1],qty)
                    local ttl = redis.call('TTL', KEYS[1])
                    if ttl > 0 then
@@ -109,25 +109,56 @@ public class RedisStockService implements StockService {
     }
 
     @Override
-    public void recoverStock(Long saleId,Long productId){
-        String lockKey ="recover_lock:%d:%d".formatted(saleId,productId);
-        if(!Boolean.TRUE.equals(redisTemplate.opsForValue()
-                .setIfAbsent(lockKey, "1", Duration.ofSeconds(5)))){
-            return;
+    public void recoverStock(Long saleId, Long productId) {
+        int retries = 10;
+        int waitMs = 20;
+
+        String lockKey = "recover_lock:%d:%d".formatted(saleId, productId);
+        String stockKey = "stock:%d:%d".formatted(saleId, productId);
+        log.info("Trying to acquire lock for {} {}", saleId, productId);
+
+        Boolean isOwner = redisTemplate.opsForValue()
+                .setIfAbsent(lockKey, "1", Duration.ofSeconds(10));
+
+        if (!Boolean.TRUE.equals(isOwner)) {
+            for (int i = 0; i < retries; i++) {
+                String stock = redisTemplate.opsForValue().get(stockKey);
+                if (stock != null) {
+                    return;
+                }
+
+                try {
+                    Thread.sleep(waitMs);
+                } catch (InterruptedException e) {
+                    Thread.currentThread().interrupt();
+                }
+            }
+
+            throw new InfrastructureException(ErrorCode.STOCK_NOT_INITIALIZED);
         }
-        SaleItem item = saleItemRepository.findBySaleIdAndProductId(saleId,productId)
-                .orElseThrow(()->new CustomException(ErrorCode.PRODUCT_NOT_FOUND));
+        log.info("Lock acquired, performing recovery...");
+
+
+        SaleItem item = saleItemRepository.findBySaleIdAndProductId(saleId, productId)
+                .orElseThrow(() -> new CustomException(ErrorCode.PRODUCT_NOT_FOUND));
+
         int initialStock = item.getTotalStock();
-        long sold = orderRepository.countSoldQuantity(saleId,productId, OrderStatus.CONFIRMED);
-        int remainingStock = Math.max(0,initialStock -  (int) sold);
-        String stockKey = "stock:%d:%d".formatted(saleId,productId);
-        redisTemplate.opsForValue().set(stockKey, String.valueOf(remainingStock));
-        redisTemplate.opsForValue().set("sale_active:"+saleId, String.valueOf(true),Duration.ofHours(24));
+        long sold = orderRepository.countSoldQuantity(saleId, productId, OrderStatus.CONFIRMED);
+
+        int remainingStock = Math.max(0, initialStock - (int) sold);
+
+        redisTemplate.opsForValue()
+                .set(stockKey, String.valueOf(remainingStock), Duration.ofHours(24));
+
+        redisTemplate.opsForValue()
+                .set("sale_active:" + saleId, "true", Duration.ofHours(24));
+
+        log.info("Stock recovered and set in Redis: {}", remainingStock);
     }
+
 
     @PostConstruct
     public void recoverAllStock() {
-
         List<SaleItem> items = saleItemRepository.findBySaleStatus(SaleStatus.ACTIVE);
         for (SaleItem item : items) {
 

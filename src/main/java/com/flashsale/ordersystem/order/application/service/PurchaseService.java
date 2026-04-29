@@ -26,6 +26,7 @@ public class PurchaseService {
     private final OrderEventPublisher orderEventPublisher;
     private final StringRedisTemplate redisTemplate;
     public void purchase(String userId,Long saleId, Long productId,String correlationId) {
+        log.error("PURCHASE METHOD STARTED");
         int quantity = 1;
         userService.getUserOrThrow(userId);
         String key = "sale_active:" + saleId;
@@ -46,11 +47,21 @@ public class PurchaseService {
 
             boolean success;
             try{
+                log.error("BEFORE processPurchase");
                 success = stockService.processPurchase(userId,saleId, productId, quantity);
+                log.error("AFTER processPurchase");
             }
             catch (InfrastructureException e){
+                log.error("ENTERED CATCH BLOCK");
+                log.error("ERROR CODE FROM EXCEPTION: {}", e.getErrorCode());
                 if (e.getErrorCode()==ErrorCode.STOCK_NOT_INITIALIZED) {
+
+                    log.warn("Stock not initialized. Triggering recovery. saleId={}, productId={}",
+                            saleId, productId);
                     stockService.recoverStock(saleId,productId);
+                    waitForStock(saleId, productId);
+                    log.info("Retrying purchase after stock recovery. saleId={}, productId={}",
+                            saleId, productId);
                    success = stockService.processPurchase(userId, saleId, productId, quantity);
                 }
                 else {
@@ -58,6 +69,8 @@ public class PurchaseService {
                 }
             }
             if (!success){
+                log.warn("Purchase failed due to insufficient stock. saleId={}, productId={}",
+                        saleId, productId);
                 throw new CustomException(ErrorCode.INSUFFICIENT_STOCK);
             }
           log.info("Publishing order event. correlationId={}, userId={}, productId={}",
@@ -69,5 +82,23 @@ public class PurchaseService {
                     productId,
                     System.currentTimeMillis());
             orderEventPublisher.publish(event,correlationId);
+    }
+
+    private void waitForStock(Long saleId, Long productId) {
+        String stockKey = "stock:%d:%d".formatted(saleId, productId);
+
+        log.info("Waiting for stock key...");
+        for (int i = 0; i < 10; i++) {
+            String stock = redisTemplate.opsForValue().get(stockKey);
+            if (stock != null) return;
+
+            try {
+                Thread.sleep(20);
+            } catch (InterruptedException e) {
+                Thread.currentThread().interrupt();
+            }
+        }
+
+        throw new InfrastructureException(ErrorCode.STOCK_NOT_INITIALIZED);
     }
 }
