@@ -25,7 +25,6 @@ public class AuthService {
     private static final String APP_REALM = "flash-sale";
     @Value("${keycloak.realm}")
     private String realm;
-    @Transactional
     public void register(RegisterRequest request) {
         if (userRepository.existsByEmail(request.email())) {
             throw new CustomException(ErrorCode.EMAIL_ALREADY_EXISTS);

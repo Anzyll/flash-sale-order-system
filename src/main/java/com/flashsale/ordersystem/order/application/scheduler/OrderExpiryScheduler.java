@@ -22,7 +22,7 @@ public class OrderExpiryScheduler {
     @Transactional
     @Scheduled(fixedDelay = 60000)
     public void expirePendingOrders(){
-        LocalDateTime threshold = LocalDateTime.now().minusMinutes(1);
+        LocalDateTime threshold = LocalDateTime.now().minusMinutes(5);
         List<Order> orders = orderRepository.findByStatusAndCreatedAtBefore(OrderStatus.PENDING,threshold);
 
         for(Order order : orders){

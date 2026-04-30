@@ -63,8 +63,6 @@ public class SaleService {
 
         try {
             SaleItem savedItem = saleItemRepository.save(saleItem);
-
-            // 🔥 Redis key remains same
             String key = "stock:%d:%d".formatted(saleId, request.productId());
 
             redisTemplate.opsForValue().set(

@@ -1,7 +1,7 @@
 package com.flashsale.ordersystem.order.presentation.controller;
 
 
-import com.flashsale.ordersystem.order.application.service.PurchaseService;
+import com.flashsale.ordersystem.order.application.service.OrderService;
 import com.flashsale.ordersystem.order.presentation.dto.PurchaseRequest;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
@@ -18,14 +18,14 @@ import java.util.UUID;
 @PreAuthorize("hasRole('USER')")
 @RequiredArgsConstructor
 public class PurchaseController {
-    private final PurchaseService purchaseService;
+    private final OrderService orderService;
     @PostMapping
     @ResponseStatus(HttpStatus.ACCEPTED)
     public String purchase(@PathVariable Long saleId, @Valid @RequestBody PurchaseRequest request){
         Jwt jwt = (Jwt) SecurityContextHolder.getContext().getAuthentication().getPrincipal();
         String userId = jwt.getSubject();
         String correlationId = UUID.randomUUID().toString();
-        purchaseService.purchase(userId,saleId,request.productId(),correlationId);
+        orderService.purchase(userId,saleId,request.productId(),correlationId);
         return "Order is being processed";
     }
 }
