@@ -40,7 +40,6 @@ public class OrderKafkaConsumer {
     private final SaleRepository saleRepository;
     private final SaleItemRepository saleItemRepository;
     private final UserService userService;
-    private final StringRedisTemplate redisTemplate;
     private final StockService stockService;
     private final ProcessedEventRepository processedEventRepository;
 
@@ -54,23 +53,15 @@ public class OrderKafkaConsumer {
             groupId = "order-processing-group",
             concurrency = "3"
     )
-    @Transactional
     public void consume(OrderPlacedEvent event, @Header("correlationId") String correlationId) {
         String eventId = event.getEventId();
         String eventKey = "event_processed:"+eventId;
 
-        Boolean first = redisTemplate.opsForValue().setIfAbsent(eventKey,"1",Duration.ofHours(24));
-        if (!Boolean.TRUE.equals(first)){
-            log.warn("Duplicate event skipped. eventId={}, correlationId={}",
-                    eventId, correlationId);
-            return;
-        }
         try{
             processedEventRepository.save(new ProcessedEvent(eventId));
         }
         catch (DataIntegrityViolationException e) {
             log.warn("Duplicate event detected. eventId={}", eventId);
-            redisTemplate.opsForValue().set(eventKey, "1", Duration.ofHours(24));
             return;
         }
 
@@ -80,6 +71,7 @@ public class OrderKafkaConsumer {
                 event.getProductId());
 
         Order order = null;
+        boolean completed = false;
 
         try {
             User user = userService.getUserOrThrow(event.getUserId());
@@ -92,14 +84,17 @@ public class OrderKafkaConsumer {
                     .orElseThrow(() -> new CustomException(ErrorCode.PRODUCT_NOT_FOUND));
 
             order = new Order();
+            order.setStatus(OrderStatus.PENDING);
             order.setUser(user);
             order.setSale(sale);
             order.setProduct(item.getProduct());
-            order.setStatus(OrderStatus.CONFIRMED);
             order.setCreatedAt(LocalDateTime.now());
             order.setTotalAmount(item.getSalePrice());
 
             Order savedOrder = orderRepository.save(order);
+            if (true) {
+                throw new RuntimeException("simulate crash before confirmation");
+            }
 
             OrderItem orderItem = new OrderItem();
             orderItem.setOrder(savedOrder);
@@ -109,37 +104,38 @@ public class OrderKafkaConsumer {
 
             orderItemRepository.save(orderItem);
 
-            redisTemplate.opsForValue().set(
-                    eventKey,
-                    "1",
-                    Duration.ofHours(24)
-            );
+            order.setStatus(OrderStatus.CONFIRMED);
+            orderRepository.save(order);
 
-            log.info("Order saved successfully. eventId={} correlationId={}", eventId, correlationId);
+            completed = true;
+            log.info("Order CONFIRMED. eventId={}, correlationId={}", eventId, correlationId);
         }
         catch (DataIntegrityViolationException e) {
 
             log.warn("Duplicate order detected. eventId={}, productId={}, correlationId={}",
                     eventId, event.getProductId(), correlationId);
-            redisTemplate.opsForValue().set(eventKey, "1", Duration.ofHours(24));
             return;
+        }
+        catch (CustomException e) {
+
+            log.warn("Business failure. eventId={}", eventId, e);
+
+            if (order != null) {
+                order.setStatus(OrderStatus.FAILED);
+                orderRepository.save(order);
+
+                stockService.revertPurchase(
+                        event.getUserId(),
+                        event.getSaleId(),
+                        event.getProductId(),
+                        1
+                );
+            }
         }
         catch (Exception e) {
 
-            log.error("Order processing failed. eventId={} correlationId={}",
-                    eventId, correlationId, e);
-
-            stockService.revertPurchase(
-                    event.getUserId(),
-                    event.getSaleId(),
-                    event.getProductId(),
-                    1
-            );
-
-            if (order != null && order.getUser() != null) {
-                order.setStatus(OrderStatus.FAILED);
-                orderRepository.save(order);
-            }
+            log.error("System failure. Leaving order in PENDING. eventId={}",
+                    eventId, e);
             throw e;
         }
     }

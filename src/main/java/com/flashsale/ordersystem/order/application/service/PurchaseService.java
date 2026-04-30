@@ -98,7 +98,6 @@ public class PurchaseService {
                 Thread.currentThread().interrupt();
             }
         }
-
         throw new InfrastructureException(ErrorCode.STOCK_NOT_INITIALIZED);
     }
 }

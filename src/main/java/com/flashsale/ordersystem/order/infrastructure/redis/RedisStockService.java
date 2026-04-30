@@ -152,11 +152,11 @@ public class RedisStockService implements StockService {
         redisTemplate.opsForValue()
                 .set(stockKey, String.valueOf(remainingStock), Duration.ofHours(24));
 
-        Sale sale = item.getSale();
+        LocalDateTime endTime = saleItemRepository.findSaleEndTime(saleId, productId);
 
         long ttlSeconds = Duration.between(
                 LocalDateTime.now(),
-                sale.getEndTime()
+                endTime
         ).getSeconds();
 
         if (ttlSeconds > 0) {
