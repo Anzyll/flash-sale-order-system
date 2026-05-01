@@ -24,7 +24,6 @@ public class OrderExpiryScheduler {
     public void expirePendingOrders(){
         LocalDateTime threshold = LocalDateTime.now().minusMinutes(5);
         List<Order> orders = orderRepository.findByStatusAndCreatedAtBefore(OrderStatus.PENDING,threshold);
-
         for(Order order : orders){
             int updated = orderRepository.expireIfPending(order.getId(),OrderStatus.PENDING,OrderStatus.EXPIRED);
             if (updated==0) {
