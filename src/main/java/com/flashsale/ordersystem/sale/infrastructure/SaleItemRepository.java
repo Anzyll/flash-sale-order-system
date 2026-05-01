@@ -21,4 +21,6 @@ public interface SaleItemRepository extends JpaRepository<SaleItem,Long> {
     WHERE si.sale.id = :saleId AND si.product.id = :productId
 """)
     LocalDateTime findSaleEndTime(Long saleId, Long productId);
+
+    boolean existsBySaleIdAndProductId(Long saleId, Long productId);
 }

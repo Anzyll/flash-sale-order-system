@@ -3,8 +3,7 @@ package com.flashsale.ordersystem.auth.service;
 import com.flashsale.ordersystem.auth.dto.RegisterRequest;
 import com.flashsale.ordersystem.common.exception.CustomException;
 import com.flashsale.ordersystem.common.exception.ErrorCode;
-import com.flashsale.ordersystem.user.domain.User;
-import com.flashsale.ordersystem.user.infrastructure.UserRepository;
+import com.flashsale.ordersystem.user.application.UserService;
 import jakarta.ws.rs.core.Response;
 import lombok.RequiredArgsConstructor;
 import org.keycloak.admin.client.Keycloak;
@@ -13,20 +12,17 @@ import org.keycloak.representations.idm.RoleRepresentation;
 import org.keycloak.representations.idm.UserRepresentation;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Service;
-import org.springframework.transaction.annotation.Transactional;
-
 import java.util.List;
 
 @Service
 @RequiredArgsConstructor
 public class AuthService {
-    private final UserRepository userRepository;
     private final Keycloak keycloak;
-    private static final String APP_REALM = "flash-sale";
-    @Value("${keycloak.realm}")
+    private final UserService userService;
+    @Value("${keycloak.app-realm}")
     private String realm;
     public void register(RegisterRequest request) {
-        if (userRepository.existsByEmail(request.email())) {
+        if (userService.existsByEmail(request.email())) {
             throw new CustomException(ErrorCode.EMAIL_ALREADY_EXISTS);
         }
 
@@ -35,7 +31,7 @@ public class AuthService {
         user.setUsername(request.username());
         user.setEnabled(true);
         user.setEmailVerified(true);
-        Response response = keycloak.realm(APP_REALM).users().create(user);
+        Response response = keycloak.realm(realm).users().create(user);
 
         if (response.getStatus() == 409) {
             throw new CustomException(ErrorCode.EMAIL_ALREADY_EXISTS);
@@ -54,25 +50,21 @@ public class AuthService {
             credential.setValue(request.password());
             credential.setTemporary(false);
 
-            keycloak.realm(APP_REALM)
+            keycloak.realm(realm)
                     .users()
                     .get(keycloakId)
                     .resetPassword(credential);
 
-            var realmResource = keycloak.realm(APP_REALM);
+            var realmResource = keycloak.realm(realm);
             var userResource = realmResource.users().get(keycloakId);
 
             RoleRepresentation userRole = realmResource.roles().get("USER").toRepresentation();
             userResource.roles().realmLevel().add(List.of(userRole));
 
-            User dbUser = new User();
-            dbUser.setKeycloakId(keycloakId);
-            dbUser.setEmail(request.email());
-
-            userRepository.save(dbUser);
+            userService.createUser(keycloakId,request.email());
 
         } catch (Exception e) {
-            keycloak.realm(APP_REALM).users().delete(keycloakId);
+            keycloak.realm(realm).users().delete(keycloakId);
             throw e;
         }
     }

@@ -1,5 +1,6 @@
 package com.flashsale.ordersystem.sale.application.scheduler;
 
+import com.flashsale.ordersystem.order.application.port.StockService;
 import com.flashsale.ordersystem.sale.domain.enums.SaleStatus;
 import com.flashsale.ordersystem.sale.domain.model.Sale;
 import com.flashsale.ordersystem.sale.domain.model.SaleItem;
@@ -7,7 +8,6 @@ import com.flashsale.ordersystem.sale.infrastructure.SaleItemRepository;
 import com.flashsale.ordersystem.sale.infrastructure.SaleRepository;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
-import org.springframework.data.redis.core.StringRedisTemplate;
 import org.springframework.scheduling.annotation.Scheduled;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -21,8 +21,7 @@ import java.util.List;
 public class SaleScheduler {
     private final   SaleRepository saleRepository;
     private final SaleItemRepository saleItemRepository;
-    private final StringRedisTemplate redisTemplate;
-
+    private final StockService stockService;
     @Scheduled(fixedRate = 5000)
     @Transactional
     public void processSales(){
@@ -48,21 +47,14 @@ public class SaleScheduler {
         ttl = Math.max(ttl, 60);
 
         for (SaleItem item : items){
-            String key = "stock:"+sale.getId()+":"+item.getProduct().getId();
-            redisTemplate.opsForValue().set(
-                    key,
-                    String.valueOf(item.getTotalStock()),
-                    java.time.Duration.ofSeconds(ttl)
-                    );
+            stockService.initializeSaleStock(sale.getId(),
+                    item.getProduct().getId(),
+                    item.getTotalStock(),
+                    ttl);
         }
-        redisTemplate.opsForValue().set(
-                "sale_active:"+sale.getId(),
-                "true",
-                java.time.Duration.ofSeconds(ttl)
-        );
+        stockService.activateSale(sale.getId(),ttl);
         sale.setStatus(SaleStatus.ACTIVE);
         saleRepository.save(sale);
-
     }
 
     private  void  endSale(LocalDateTime now){
@@ -75,12 +67,12 @@ public class SaleScheduler {
 
     private void deactivateSale(Sale sale){
         log.info("Ending sale {}",sale.getId());
-        redisTemplate.delete("sale_active:"+sale.getId());
+
         List<SaleItem> items = saleItemRepository.findAllBySaleId(sale.getId());
         for (SaleItem item : items) {
-            String key = "stock:" + sale.getId() + ":" + item.getProduct().getId();
-            redisTemplate.delete(key);
+            stockService.deactivateSale(sale.getId(),item.getProduct().getId());
         }
+        stockService.deactivateSale(sale.getId());
         sale.setStatus(SaleStatus.ENDED);
         saleRepository.save(sale);
     }

@@ -1,5 +1,7 @@
 package com.flashsale.ordersystem.product.application.service;
 
+import com.flashsale.ordersystem.common.exception.CustomException;
+import com.flashsale.ordersystem.common.exception.ErrorCode;
 import com.flashsale.ordersystem.product.presentation.dto.CreateProductRequest;
 import com.flashsale.ordersystem.product.presentation.dto.ProductResponse;
 import com.flashsale.ordersystem.product.application.mapper.ProductMapper;
@@ -18,6 +20,10 @@ public class ProductService {
         Product product = ProductMapper.toEntity(request);
         Product savedProduct = productRepository.save(product);
         return ProductMapper.toResponse(savedProduct);
+    }
 
+    public Product getProductOrThrow(Long productId) {
+        return productRepository.findById(productId)
+                .orElseThrow(() -> new CustomException(ErrorCode.PRODUCT_NOT_FOUND));
     }
 }

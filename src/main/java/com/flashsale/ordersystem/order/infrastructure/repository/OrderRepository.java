@@ -6,6 +6,7 @@ import org.aspectj.weaver.ast.Or;
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.data.jpa.repository.Modifying;
 import org.springframework.data.jpa.repository.Query;
+import org.springframework.data.repository.query.Param;
 import org.springframework.stereotype.Repository;
 
 import java.time.LocalDateTime;
@@ -27,8 +28,8 @@ public interface OrderRepository extends JpaRepository<Order,Long> {
     @Modifying
     @Query("""
     UPDATE Order o 
-    SET o.status='EXPIRED' 
-    WHERE o.id = :id  AND o.status = 'PENDING'
+    SET o.status= :expiredStatus
+    WHERE o.id = :id  AND o.status = :pendingStatus
     """)
-    int expireIfPending(Long id);
+    int expireIfPending(@Param("id") Long id, @Param("pendingStatus") OrderStatus pendingStatus,@Param("expiredStatus") OrderStatus expiredStatus);
 }

@@ -18,4 +18,15 @@ public class UserService {
         return userRepository.findByKeycloakId(keycloakId)
                 .orElseThrow(() -> new CustomException(ErrorCode.USER_NOT_FOUND));
     }
+
+    public boolean existsByEmail(String email) {
+        return userRepository.existsByEmail(email);
+    }
+
+    public User createUser(String keycloakId, String email) {
+        User user = new User();
+        user.setKeycloakId(keycloakId);
+        user.setEmail(email);
+        return userRepository.save(user);
+    }
 }

@@ -4,21 +4,12 @@ import com.flashsale.ordersystem.common.exception.CustomException;
 import com.flashsale.ordersystem.common.exception.ErrorCode;
 import com.flashsale.ordersystem.common.exception.InfrastructureException;
 import com.flashsale.ordersystem.order.application.port.StockService;
-import com.flashsale.ordersystem.order.domain.enums.OrderStatus;
-import com.flashsale.ordersystem.order.infrastructure.repository.OrderRepository;
-import com.flashsale.ordersystem.sale.domain.enums.SaleStatus;
-import com.flashsale.ordersystem.sale.domain.model.Sale;
-import com.flashsale.ordersystem.sale.domain.model.SaleItem;
-import com.flashsale.ordersystem.sale.infrastructure.SaleItemRepository;
-import jakarta.annotation.PostConstruct;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.data.redis.core.StringRedisTemplate;
 import org.springframework.data.redis.core.script.DefaultRedisScript;
 import org.springframework.stereotype.Service;
-
 import java.time.Duration;
-import java.time.LocalDateTime;
 import java.util.List;
 
 @Service
@@ -26,8 +17,6 @@ import java.util.List;
 @Slf4j
 public class RedisStockService implements StockService {
     private final StringRedisTemplate redisTemplate;
-    private final SaleItemRepository saleItemRepository;
-    private final OrderRepository orderRepository;
     private static final String LUA_SCRIPT = """
                    local stock = tonumber(redis.call('GET', KEYS[1]))
                    local purchased = tonumber(redis.call('EXISTS', KEYS[2]))
@@ -111,7 +100,11 @@ public class RedisStockService implements StockService {
     }
 
     @Override
-    public void recoverStock(Long saleId, Long productId) {
+    public void recoverStock(Long saleId,
+                             Long productId,
+                             int remainingStock,
+                             long ttlSeconds) {
+        ttlSeconds = Math.max(ttlSeconds, 60);
         int retries = 10;
         int waitMs = 20;
 
@@ -121,8 +114,10 @@ public class RedisStockService implements StockService {
 
         Boolean isOwner = redisTemplate.opsForValue()
                 .setIfAbsent(lockKey, "1", Duration.ofSeconds(10));
+        boolean owner = Boolean.TRUE.equals(isOwner);
 
-        if (!Boolean.TRUE.equals(isOwner)) {
+        try {
+        if (!owner) {
             for (int i = 0; i < retries; i++) {
                 String stock = redisTemplate.opsForValue().get(stockKey);
                 if (stock != null) {
@@ -140,46 +135,77 @@ public class RedisStockService implements StockService {
         }
         log.info("Lock acquired, performing recovery...");
 
-
-        SaleItem item = saleItemRepository.findBySaleIdAndProductId(saleId, productId)
-                .orElseThrow(() -> new CustomException(ErrorCode.PRODUCT_NOT_FOUND));
-
-        int initialStock = item.getTotalStock();
-        long sold = orderRepository.countSoldQuantity(saleId, productId, OrderStatus.CONFIRMED);
-
-        int remainingStock = Math.max(0, initialStock - (int) sold);
+        redisTemplate.opsForValue().set(
+                stockKey,
+                String.valueOf(remainingStock),
+                Duration.ofSeconds(ttlSeconds)
+        );
 
         redisTemplate.opsForValue()
-                .set(stockKey, String.valueOf(remainingStock), Duration.ofHours(24));
+                .set("sale_active:" + saleId, "true", Duration.ofSeconds(ttlSeconds));
 
-        LocalDateTime endTime = saleItemRepository.findSaleEndTime(saleId, productId);
-
-        long ttlSeconds = Duration.between(
-                LocalDateTime.now(),
-                endTime
-        ).getSeconds();
-
-        if (ttlSeconds > 0) {
-            redisTemplate.opsForValue()
-                    .set("sale_active:" + saleId, "true", Duration.ofSeconds(ttlSeconds));
-        } else {
-            redisTemplate.opsForValue()
-                    .set("sale_active:" + saleId, "false", Duration.ofMinutes(5));
-        }
         log.info("Stock recovered and set in Redis: {}", remainingStock);
+        } finally {
+            if (owner) {
+                redisTemplate.delete(lockKey);
+            }
+        }
+        }
+
+    @Override
+    public void initializeSaleStock(Long saleId, Long productId, int stock, long ttlSeconds) {
+        ttlSeconds = Math.max(ttlSeconds, 60);
+        String key = "stock:"+saleId+":"+productId;
+        redisTemplate.opsForValue().set(
+                key,
+                String.valueOf(stock),
+                java.time.Duration.ofSeconds(ttlSeconds)
+        );
+    }
+
+    @Override
+    public void activateSale(Long saleId, long ttlSeconds) {
+        ttlSeconds = Math.max(ttlSeconds, 60);
+        redisTemplate.opsForValue().set(
+                "sale_active:"+saleId,
+                "true",
+                java.time.Duration.ofSeconds(ttlSeconds)
+        );
+    }
+
+    @Override
+    public void deactivateSale(Long saleId, Long productId) {
+        String key = "stock:" + saleId + ":" + productId;
+        redisTemplate.delete(key);
+    }
+
+    @Override
+    public void deactivateSale(Long saleId) {
+        redisTemplate.delete("sale_active:"+saleId);
     }
 
 
-    @PostConstruct
-    public void recoverAllStock() {
-        List<SaleItem> items = saleItemRepository.findBySaleStatus(SaleStatus.ACTIVE);
-        for (SaleItem item : items) {
+    @Override
+    public boolean isSaleActive(Long saleId) {
+        String value = redisTemplate.opsForValue().get("sale_active:" + saleId);
+        return "true".equals(value);
+    }
 
-            Long saleId = item.getSale().getId();
-            Long productId = item.getProduct().getId();
 
-            recoverStock(saleId, productId);
+    public void waitForStock(Long saleId, Long productId) {
+        String stockKey = "stock:%d:%d".formatted(saleId, productId);
+
+        log.info("Waiting for stock key...");
+        for (int i = 0; i < 10; i++) {
+            String stock = redisTemplate.opsForValue().get(stockKey);
+            if (stock != null) return;
+
+            try {
+                Thread.sleep(20);
+            } catch (InterruptedException e) {
+                Thread.currentThread().interrupt();
+            }
         }
-        log.info("Startup stock recovery completed");
+        throw new InfrastructureException(ErrorCode.STOCK_NOT_INITIALIZED);
     }
 }

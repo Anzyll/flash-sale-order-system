@@ -34,7 +34,6 @@ public class OrderKafkaConsumer {
                 event.getEventId(),
                 correlationId,
                 event.getProductId());
-
         orderService.processOrder(event,correlationId);
     }
 }

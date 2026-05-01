@@ -26,7 +26,7 @@ public class OrderExpiryScheduler {
         List<Order> orders = orderRepository.findByStatusAndCreatedAtBefore(OrderStatus.PENDING,threshold);
 
         for(Order order : orders){
-            int updated = orderRepository.expireIfPending(order.getId());
+            int updated = orderRepository.expireIfPending(order.getId(),OrderStatus.PENDING,OrderStatus.EXPIRED);
             if (updated==0) {
                 continue;
             }
