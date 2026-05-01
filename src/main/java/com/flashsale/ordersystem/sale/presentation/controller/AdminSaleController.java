@@ -1,14 +1,14 @@
 package com.flashsale.ordersystem.sale.presentation.controller;
 
-import com.flashsale.ordersystem.sale.application.mapper.SaleItemMapper;
-import com.flashsale.ordersystem.sale.application.mapper.SaleMapper;
+import com.flashsale.ordersystem.sale.presentation.mapper.SaleItemMapper;
+import com.flashsale.ordersystem.sale.presentation.mapper.SaleMapper;
 import com.flashsale.ordersystem.sale.domain.model.Sale;
 import com.flashsale.ordersystem.sale.domain.model.SaleItem;
 import com.flashsale.ordersystem.sale.presentation.dto.AddProductToSaleRequest;
 import com.flashsale.ordersystem.sale.presentation.dto.CreateSaleRequest;
 import com.flashsale.ordersystem.sale.presentation.dto.SaleItemResponse;
 import com.flashsale.ordersystem.sale.presentation.dto.SaleResponse;
-import com.flashsale.ordersystem.sale.application.service.SaleService;
+import com.flashsale.ordersystem.sale.service.SaleService;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.HttpStatus;

@@ -7,7 +7,7 @@ import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.web.bind.annotation.*;
 import com.flashsale.ordersystem.product.presentation.dto.CreateProductRequest;
 import com.flashsale.ordersystem.product.presentation.dto.ProductResponse;
-import com.flashsale.ordersystem.product.application.service.ProductService;
+import com.flashsale.ordersystem.product.service.ProductService;
 
 @RestController
 @PreAuthorize("hasRole('ADMIN')")
