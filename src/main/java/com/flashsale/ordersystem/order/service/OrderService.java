@@ -39,10 +39,10 @@ public class OrderService implements OrderProcessingUseCase {
     private final ProcessedEventRepository processedEventRepository;
     private final SaleService saleService;
     public void purchase(String userId,Long saleId, Long productId) {
-        log.info("PURCHASE METHOD STARTED");
+        log.info("Purchased started. userId={}, saleId={}, productId={}",
+                userId, saleId, productId);
         int quantity = 1;
         userService.getUserOrThrow(userId);
-
         saleService.validateSaleExists(saleId);
         saleService.validateProductInSale(saleId, productId);
 
@@ -52,13 +52,9 @@ public class OrderService implements OrderProcessingUseCase {
 
             boolean success;
             try{
-                log.debug("BEFORE processPurchase");
                 success = stockReservationPort.processPurchase(userId,saleId, productId, quantity);
-                log.debug("AFTER processPurchase");
             }
             catch (InfrastructureException e){
-                log.debug("ENTERED CATCH BLOCK");
-                log.error("ERROR CODE FROM EXCEPTION: {}", e.getErrorCode());
                 if (e.getErrorCode()==ErrorCode.STOCK_NOT_INITIALIZED) {
 
                     log.warn("Stock not initialized. Triggering recovery. saleId={}, productId={}",
@@ -80,7 +76,8 @@ public class OrderService implements OrderProcessingUseCase {
 
             }
         String correlationId = MDC.get("correlationId");
-          log.info("Publishing order event userId={}, productId={}",userId, productId);
+        log.info("Purchase successful. Publishing event. userId={}, saleId={}, productId={}",
+                userId, saleId, productId);
             OrderPlacedEvent event = new OrderPlacedEvent(
                     correlationId,
                     userId,
@@ -133,7 +130,7 @@ public class OrderService implements OrderProcessingUseCase {
             orderRepository.save(order);
 
             completed = true;
-            log.info("Order CONFIRMED. eventId={}", event.getEventId());
+            log.info("Purchase CONFIRMED. eventId={}", event.getEventId());
         }
         catch (DataIntegrityViolationException e) {
             log.warn("Duplicate order detected. eventId={}, productId={}",
@@ -141,8 +138,8 @@ public class OrderService implements OrderProcessingUseCase {
             return;
         }
         catch (CustomException e) {
-            log.warn("Business failure. eventId={}", event.getEventId(), e);
-
+            log.warn("Business failure. eventId={}, errorCode={}",
+                    event.getEventId(), e.getErrorCode());
             if(!completed) {
                 stockReservationPort.revertPurchase(
                         event.getUserId(),
@@ -163,7 +160,8 @@ public class OrderService implements OrderProcessingUseCase {
         }
     }
     private void recoverStockFromDB(Long saleId, Long productId) {
-
+        log.warn("Recovering stock from DB. saleId={}, productId={}",
+                saleId, productId);
         int initialStock = saleService.getTotalStock(saleId, productId);
         long sold = orderRepository.countSoldQuantity(
                 saleId,
@@ -178,5 +176,7 @@ public class OrderService implements OrderProcessingUseCase {
         ).getSeconds();
         ttl = Math.max(ttl, 60);
         stockReservationPort.recoverStock(saleId, productId, remaining, ttl);
+        log.info("Stock recovered. saleId={}, productId={}, remaining={}, ttl={}",
+                saleId, productId, remaining, ttl);
     }
 }

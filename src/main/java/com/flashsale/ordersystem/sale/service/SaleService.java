@@ -20,7 +20,6 @@ import lombok.extern.slf4j.Slf4j;
 import org.springframework.dao.DataIntegrityViolationException;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
-
 import java.time.LocalDateTime;
 import java.util.List;
 
@@ -34,13 +33,16 @@ public class SaleService {
 
     @Transactional
     public Sale createSale(@Valid CreateSaleRequest request) {
+        log.info("Creating sale. name={}, startAt={}, endAt={}",
+                request.title(), request.startTime(), request.endTime());
         Sale sale = SaleMapper.toEntity(request);
         return saleRepository.save(sale);
     }
 
     @Transactional
     public SaleItem addProductToSale(Long saleId, AddProductToSaleRequest request) {
-
+        log.info("Add product to sale. saleId={}, productId={}",
+                saleId, request.productId());
         Sale sale = saleRepository.findById(saleId)
                 .orElseThrow(() -> new CustomException(ErrorCode.SALE_NOT_FOUND));
 
@@ -58,14 +60,17 @@ public class SaleService {
             throw new CustomException(ErrorCode.INVALID_STOCK);
         }
 
-
         SaleItem saleItem = SaleItemMapper.toEntity(request, sale, product);
 
         try {
             SaleItem savedItem = saleItemRepository.save(saleItem);
+            log.info("Product added to sale. saleId={}, productId={}",
+                    saleId, request.productId());
             return savedItem;
 
         } catch (DataIntegrityViolationException e) {
+            log.warn("Product already in sale. saleId={}, productId={}",
+                    saleId, request.productId());
             throw new CustomException(ErrorCode.PRODUCT_ALREADY_IN_SALE);
         }
     }
@@ -83,7 +88,7 @@ public class SaleService {
 
     public void validateSaleExists(Long saleId) {
        Sale sale = saleRepository.findById(saleId)
-                .orElseThrow(()->new CustomException(ErrorCode.PRODUCT_NOT_FOUND));
+                .orElseThrow(()->new CustomException(ErrorCode.SALE_NOT_FOUND));
 
        if (sale.getStatus() != SaleStatus.ACTIVE) {
             throw new CustomException(ErrorCode.SALE_NOT_ACTIVE);
@@ -96,12 +101,6 @@ public class SaleService {
             throw new CustomException(ErrorCode.PRODUCT_NOT_FOUND);
         }
 
-    }
-
-    public SaleItem getSaleItemOrThrow(Long saleId, Long productId) {
-        return saleItemRepository
-                .findBySaleIdAndProductId(saleId, productId)
-                .orElseThrow(() -> new CustomException(ErrorCode.PRODUCT_NOT_FOUND));
     }
 
     public SaleData getSaleAndItem(Long saleId, Long productId) {

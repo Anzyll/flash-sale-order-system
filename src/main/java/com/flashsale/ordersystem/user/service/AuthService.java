@@ -5,6 +5,7 @@ import com.flashsale.ordersystem.shared.exception.CustomException;
 import com.flashsale.ordersystem.shared.exception.ErrorCode;
 import jakarta.ws.rs.core.Response;
 import lombok.RequiredArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
 import org.keycloak.admin.client.Keycloak;
 import org.keycloak.representations.idm.CredentialRepresentation;
 import org.keycloak.representations.idm.RoleRepresentation;
@@ -15,13 +16,16 @@ import java.util.List;
 
 @Service
 @RequiredArgsConstructor
+@Slf4j
 public class AuthService {
     private final Keycloak keycloak;
     private final UserService userService;
     @Value("${keycloak.app-realm}")
     private String realm;
     public void register(RegisterRequest request) {
+        log.info("User registration started. email={}", request.email());
         if (userService.existsByEmail(request.email())) {
+            log.warn("Registration failed. Email already exists. email={}", request.email());
             throw new CustomException(ErrorCode.EMAIL_ALREADY_EXISTS);
         }
 
@@ -33,10 +37,13 @@ public class AuthService {
         Response response = keycloak.realm(realm).users().create(user);
 
         if (response.getStatus() == 409) {
+            log.warn("Registration failed. Email already exists. email={}", request.email());
             throw new CustomException(ErrorCode.EMAIL_ALREADY_EXISTS);
         }
 
         if (response.getStatus() != 201) {
+            log.error("Keycloak user creation failed. email={}, status={}",
+                    request.email(), response.getStatus());
             throw new RuntimeException("Keycloak user creation failed");
         }
 
@@ -61,9 +68,13 @@ public class AuthService {
             userResource.roles().realmLevel().add(List.of(userRole));
 
             userService.createUser(keycloakId,request.email());
+            log.info("User registration successful. userId={}, email={}",
+                    keycloakId, request.email());
 
         } catch (Exception e) {
             keycloak.realm(realm).users().delete(keycloakId);
+            log.error("Registration failed. Rolling back Keycloak user. userId={}, email={}",
+                    keycloakId, request.email(), e);
             throw e;
         }
     }
