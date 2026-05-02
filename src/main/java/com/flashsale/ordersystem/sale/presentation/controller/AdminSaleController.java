@@ -11,6 +11,7 @@ import com.flashsale.ordersystem.sale.presentation.dto.SaleResponse;
 import com.flashsale.ordersystem.sale.service.SaleService;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
 import org.springframework.http.HttpStatus;
 import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.web.bind.annotation.*;
@@ -19,17 +20,22 @@ import org.springframework.web.bind.annotation.*;
 @PreAuthorize("hasRole('ADMIN')")
 @RequestMapping("/api/v1/admin/sales")
 @RequiredArgsConstructor
+@Slf4j
 public class AdminSaleController {
     private final SaleService saleService;
     @PostMapping
     @ResponseStatus(HttpStatus.CREATED)
     public SaleResponse createSale(@RequestBody @Valid CreateSaleRequest request){
+        log.info("Create sale request. name={}, startAt={}, endAt={}",
+                request.title(), request.startTime(), request.endTime());
         Sale sale = saleService.createSale(request);
         return SaleMapper.toResponse(sale);
     }
     @PostMapping("/{saleId}/items")
     @ResponseStatus(HttpStatus.CREATED)
     public SaleItemResponse addProductToSale(@PathVariable Long saleId,@Valid @RequestBody AddProductToSaleRequest request){
+        log.info("Add product to sale. saleId={}, productId={}, quantity={}, price={}",
+                saleId, request.productId(), request.totalStock(), request.salePrice());
         SaleItem item = saleService.addProductToSale(saleId,request);
         return SaleItemMapper.toResponse(item);
     }

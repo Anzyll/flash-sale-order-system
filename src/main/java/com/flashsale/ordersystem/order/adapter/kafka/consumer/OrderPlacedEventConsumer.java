@@ -4,6 +4,7 @@ import com.flashsale.ordersystem.order.port.OrderProcessingUseCase;
 import com.flashsale.ordersystem.order.domain.model.OrderPlacedEvent;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
+import org.slf4j.MDC;
 import org.springframework.kafka.annotation.KafkaListener;
 import org.springframework.kafka.annotation.RetryableTopic;
 import org.springframework.messaging.handler.annotation.Header;
@@ -26,10 +27,16 @@ public class OrderPlacedEventConsumer {
             concurrency = "3"
     )
     public void consume(OrderPlacedEvent event, @Header("correlationId") String correlationId) {
-        log.info("Processing order. eventId={}, correlationId={}, productId={}",
-                event.getEventId(),
-                correlationId,
-                event.getProductId());
-        orderProcessingUseCase.processOrder(event,correlationId);
+        MDC.put("correlationId", correlationId);
+        try {
+            log.info("Processing order. eventId={}, productId={}",
+                    event.getEventId(),
+                    event.getProductId());
+
+            orderProcessingUseCase.processOrder(event);
+
+        } finally {
+            MDC.clear();
+        }
     }
 }

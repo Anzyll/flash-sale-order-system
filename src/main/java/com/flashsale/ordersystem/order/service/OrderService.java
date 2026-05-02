@@ -19,6 +19,7 @@ import com.flashsale.ordersystem.user.service.UserService;
 import com.flashsale.ordersystem.user.domain.User;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
+import org.slf4j.MDC;
 import org.springframework.dao.DataIntegrityViolationException;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -37,7 +38,7 @@ public class OrderService implements OrderProcessingUseCase {
     private final OrderItemRepository orderItemRepository;
     private final ProcessedEventRepository processedEventRepository;
     private final SaleService saleService;
-    public void purchase(String userId,Long saleId, Long productId,String correlationId) {
+    public void purchase(String userId,Long saleId, Long productId) {
         log.info("PURCHASE METHOD STARTED");
         int quantity = 1;
         userService.getUserOrThrow(userId);
@@ -76,21 +77,22 @@ public class OrderService implements OrderProcessingUseCase {
                 log.warn("Purchase failed due to insufficient stock. saleId={}, productId={}",
                         saleId, productId);
                 throw new CustomException(ErrorCode.INSUFFICIENT_STOCK);
+
             }
-          log.info("Publishing order event. correlationId={}, userId={}, productId={}",
-                correlationId, userId, productId);
+        String correlationId = MDC.get("correlationId");
+          log.info("Publishing order event userId={}, productId={}",userId, productId);
             OrderPlacedEvent event = new OrderPlacedEvent(
                     correlationId,
                     userId,
                     saleId,
                     productId,
                     System.currentTimeMillis());
-            orderEventPublisher.publish(event,correlationId);
+            orderEventPublisher.publish(event);
     }
 
     @Override
     @Transactional
-    public void processOrder(OrderPlacedEvent event,String correlationId){
+    public void processOrder(OrderPlacedEvent event){
         try{
             processedEventRepository.save(new ProcessedEvent(event.getEventId()));
         }
@@ -131,11 +133,11 @@ public class OrderService implements OrderProcessingUseCase {
             orderRepository.save(order);
 
             completed = true;
-            log.info("Order CONFIRMED. eventId={}, correlationId={}", event.getEventId(), correlationId);
+            log.info("Order CONFIRMED. eventId={}", event.getEventId());
         }
         catch (DataIntegrityViolationException e) {
-            log.warn("Duplicate order detected. eventId={}, productId={}, correlationId={}",
-                    event.getEventId(), event.getProductId(), correlationId);
+            log.warn("Duplicate order detected. eventId={}, productId={}",
+                    event.getEventId(), event.getProductId());
             return;
         }
         catch (CustomException e) {
