@@ -35,12 +35,16 @@ public class RedisStockAdapter implements StockReservationPort, SaleStockPort {
                 String.valueOf(quantity)
         );
         if (result == null) {
+            log.error("Redis increment failed during revert. saleId={}, productId={}",
+                    saleId, productId);
             throw new InfrastructureException(ErrorCode.REDIS_EXECUTION_FAILED);
         }
         if (result == OUT_OF_STOCK) {
             return false;
         }
         if (result == NOT_INITIALIZED) {
+            log.error("Stock recovery failed. saleId={}, productId={}",
+                    saleId, productId);
             throw new InfrastructureException(ErrorCode.STOCK_NOT_INITIALIZED);
         }
         if (result == INVALID_QTY) {
@@ -54,6 +58,8 @@ public class RedisStockAdapter implements StockReservationPort, SaleStockPort {
 
     @Override
     public void revertPurchase(String userId,Long saleId, Long productId, int quantity) {
+        log.warn("Reverting stock. userId={}, saleId={}, productId={}, quantity={}",
+                userId, saleId, productId, quantity);
         String stockKey = "stock:%d:%d".formatted(saleId, productId);
         String purchaseKey = "purchase_done:%s:%d:%d".formatted(userId, saleId, productId);
         Long result = redisTemplate.opsForValue().increment(stockKey,quantity);
@@ -68,14 +74,14 @@ public class RedisStockAdapter implements StockReservationPort, SaleStockPort {
                              Long productId,
                              int remainingStock,
                              long ttlSeconds) {
+        log.warn("Stock recovery started. saleId={}, productId={}",
+                saleId, productId);
         ttlSeconds = Math.max(ttlSeconds, 60);
         int retries = 10;
         int waitMs = 20;
 
         String lockKey = "recover_lock:%d:%d".formatted(saleId, productId);
         String stockKey = "stock:%d:%d".formatted(saleId, productId);
-        log.info("Trying to acquire lock for {} {}", saleId, productId);
-
         Boolean isOwner = redisTemplate.opsForValue()
                 .setIfAbsent(lockKey, "1", Duration.ofSeconds(10));
         boolean owner = Boolean.TRUE.equals(isOwner);
@@ -97,7 +103,8 @@ public class RedisStockAdapter implements StockReservationPort, SaleStockPort {
 
             throw new InfrastructureException(ErrorCode.STOCK_NOT_INITIALIZED);
         }
-        log.info("Lock acquired, performing recovery...");
+            log.info("Recovery lock acquired. saleId={}, productId={}",
+                    saleId, productId);
 
         redisTemplate.opsForValue().set(
                 stockKey,
@@ -108,7 +115,8 @@ public class RedisStockAdapter implements StockReservationPort, SaleStockPort {
         redisTemplate.opsForValue()
                 .set("sale_active:" + saleId, "true", Duration.ofSeconds(ttlSeconds));
 
-        log.info("Stock recovered and set in Redis: {}", remainingStock);
+        log.info("Stock recovered. saleId={}, productId={}, remaining={}, ttl={}",
+                    saleId, productId, remainingStock, ttlSeconds);
         } finally {
             if (owner) {
                 redisTemplate.delete(lockKey);
@@ -159,7 +167,8 @@ public class RedisStockAdapter implements StockReservationPort, SaleStockPort {
     public void waitForStock(Long saleId, Long productId) {
         String stockKey = "stock:%d:%d".formatted(saleId, productId);
 
-        log.info("Waiting for stock key...");
+        log.warn("Waiting for stock initialization. saleId={}, productId={}",
+                saleId, productId);
         for (int i = 0; i < 10; i++) {
             String stock = redisTemplate.opsForValue().get(stockKey);
             if (stock != null) return;

@@ -29,13 +29,21 @@ public class OrderPlacedEventConsumer {
     public void consume(OrderPlacedEvent event, @Header("correlationId") String correlationId) {
         MDC.put("correlationId", correlationId);
         try {
-            log.info("Processing order. eventId={}, productId={}",
+            log.info("Order event received. eventId={}, userId={}, productId={}",
                     event.getEventId(),
+                    event.getUserId(),
                     event.getProductId());
-
             orderProcessingUseCase.processOrder(event);
 
-        } finally {
+        }
+        catch (Exception e) {
+            log.error("Order processing failed. eventId={}, productId={}",
+                    event.getEventId(),
+                    event.getProductId(),
+                    e);
+            throw e;
+        }
+        finally {
             MDC.clear();
         }
     }

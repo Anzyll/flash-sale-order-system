@@ -28,13 +28,15 @@ public class OrderEventPublisherAdapter implements OrderEventPublisher {
             record.headers().add("correlationId", correlationId.getBytes());
         }
         try{
+            log.info("Publishing order event. eventId={}, productId={}",
+                    event.getEventId(), event.getProductId());
             kafkaTemplate.send(record).get();
-            log.info("Kafka event sent productId={}",
-                     event.getProductId());
+            log.info("Order event published. eventId={}, productId={}",
+                    event.getEventId(), event.getProductId());
         }
         catch (Exception e){
-            log.error("Kafka send failed. productId={}",
-                  event.getProductId(), e);
+            log.error("Kafka publish failed. eventId={}, productId={}",
+                    event.getEventId(), event.getProductId(), e);
             throw new InfrastructureException(ErrorCode.KAFKA_UNAVAILABLE);
         }
 
