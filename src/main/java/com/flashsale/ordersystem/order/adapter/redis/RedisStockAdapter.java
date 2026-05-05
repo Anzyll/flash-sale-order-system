@@ -1,6 +1,6 @@
 package com.flashsale.ordersystem.order.adapter.redis;
 
-import com.flashsale.ordersystem.shared.exception.CustomException;
+import com.flashsale.ordersystem.shared.exception.BusinessException;
 import com.flashsale.ordersystem.shared.exception.ErrorCode;
 import com.flashsale.ordersystem.shared.exception.InfrastructureException;
 import com.flashsale.ordersystem.shared.port.StockReservationPort;
@@ -26,7 +26,7 @@ public class RedisStockAdapter implements StockReservationPort, SaleStockPort {
 
 
     @Override
-    public boolean processPurchase(String  userId, Long saleId, Long productId, int quantity) {
+    public boolean tryPurchase(String  userId, Long saleId, Long productId, int quantity) {
         String stock_key = "stock:%d:%d".formatted(saleId, productId);
         String purchase_done_key = "purchase_done:%s:%d:%d".formatted(userId, saleId, productId);
         Long result = redisTemplate.execute(
@@ -48,10 +48,10 @@ public class RedisStockAdapter implements StockReservationPort, SaleStockPort {
             throw new InfrastructureException(ErrorCode.STOCK_NOT_INITIALIZED);
         }
         if (result == INVALID_QTY) {
-            throw new CustomException(ErrorCode.INVALID_QUANTITY);
+            throw new BusinessException(ErrorCode.INVALID_QUANTITY);
         }
         if (result == ALREADY_PURCHASED) {
-            throw new CustomException(ErrorCode.ALREADY_PURCHASED);
+            throw new BusinessException(ErrorCode.ALREADY_PURCHASED);
         }
         return true;
     }

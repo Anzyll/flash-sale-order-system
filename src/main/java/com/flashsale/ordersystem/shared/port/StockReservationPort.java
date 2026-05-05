@@ -1,7 +1,7 @@
 package com.flashsale.ordersystem.shared.port;
 
 public interface StockReservationPort {
-    boolean processPurchase(String userId,Long saleId, Long productId, int quantity);
+    boolean tryPurchase(String userId,Long saleId, Long productId, int quantity);
     void revertPurchase(String userId, Long saleId, Long productId, int quantity);
     void recoverStock(Long saleId,Long productId, int remainingStock,long ttlSeconds) ;
     void waitForStock(Long saleId, Long productId);

@@ -1,7 +1,7 @@
 package com.flashsale.ordersystem.order.service;
 
 import com.flashsale.ordersystem.order.port.OrderProcessingUseCase;
-import com.flashsale.ordersystem.shared.exception.CustomException;
+import com.flashsale.ordersystem.shared.exception.BusinessException;
 import com.flashsale.ordersystem.shared.exception.ErrorCode;
 import com.flashsale.ordersystem.shared.exception.InfrastructureException;
 import com.flashsale.ordersystem.order.port.OrderEventPublisher;
@@ -38,21 +38,23 @@ public class OrderService implements OrderProcessingUseCase {
     private final OrderItemRepository orderItemRepository;
     private final ProcessedEventRepository processedEventRepository;
     private final SaleService saleService;
+    private static final int DEFAULT_QUANTITY = 1;
     public void purchase(String userId,Long saleId, Long productId) {
         log.info("Purchased started. userId={}, saleId={}, productId={}",
                 userId, saleId, productId);
-        int quantity = 1;
         userService.getUserOrThrow(userId);
+        log.info("user finshed");
         saleService.validateSaleExists(saleId);
+        log.info("validate sale");
         saleService.validateProductInSale(saleId, productId);
+        log.info("validate product");
 
         if (!stockReservationPort.isSaleActive(saleId)) {
-            throw new CustomException(ErrorCode.SALE_NOT_ACTIVE);
+            throw new BusinessException(ErrorCode.SALE_NOT_ACTIVE);
         }
-
             boolean success;
             try{
-                success = stockReservationPort.processPurchase(userId,saleId, productId, quantity);
+                success = stockReservationPort.tryPurchase(userId,saleId, productId, DEFAULT_QUANTITY);
             }
             catch (InfrastructureException e){
                 if (e.getErrorCode()==ErrorCode.STOCK_NOT_INITIALIZED) {
@@ -63,16 +65,18 @@ public class OrderService implements OrderProcessingUseCase {
                     stockReservationPort.waitForStock(saleId, productId);
                     log.info("Retrying purchase after stock recovery. saleId={}, productId={}",
                             saleId, productId);
-                   success = stockReservationPort.processPurchase(userId, saleId, productId, quantity);
+                   success = stockReservationPort.tryPurchase(userId, saleId, productId, DEFAULT_QUANTITY);
                 }
                 else {
-                    throw e;
+                    log.error("Redis failure. errorCode={}, saleId={}, productId={}",
+                            e.getErrorCode(), saleId, productId, e);
+                    throw new BusinessException(ErrorCode.INSUFFICIENT_STOCK);
                 }
             }
             if (!success){
                 log.warn("Purchase failed due to insufficient stock. saleId={}, productId={}",
                         saleId, productId);
-                throw new CustomException(ErrorCode.INSUFFICIENT_STOCK);
+                throw new BusinessException(ErrorCode.INSUFFICIENT_STOCK);
 
             }
         String correlationId = MDC.get("correlationId");
@@ -116,12 +120,13 @@ public class OrderService implements OrderProcessingUseCase {
             order.setCreatedAt(LocalDateTime.now());
             order.setTotalAmount(saleData.price());
 
+
             Order savedOrder = orderRepository.save(order);
 
             OrderItem orderItem = new OrderItem();
             orderItem.setOrder(savedOrder);
             orderItem.setProduct(savedOrder.getProduct());
-            orderItem.setQuantity(1);
+            orderItem.setQuantity(DEFAULT_QUANTITY);
             orderItem.setPrice(saleData.price());
 
             orderItemRepository.save(orderItem);
@@ -137,7 +142,7 @@ public class OrderService implements OrderProcessingUseCase {
                     event.getEventId(), event.getProductId());
             return;
         }
-        catch (CustomException e) {
+        catch (BusinessException e) {
             log.warn("Business failure. eventId={}, errorCode={}",
                     event.getEventId(), e.getErrorCode());
             if(!completed) {
@@ -145,7 +150,7 @@ public class OrderService implements OrderProcessingUseCase {
                         event.getUserId(),
                         event.getSaleId(),
                         event.getProductId(),
-                        1
+                        DEFAULT_QUANTITY
                 );
                 if (order != null) {
                     order.setStatus(OrderStatus.FAILED);

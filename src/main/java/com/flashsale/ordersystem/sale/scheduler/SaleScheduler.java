@@ -1,5 +1,6 @@
 package com.flashsale.ordersystem.sale.scheduler;
 
+import com.flashsale.ordersystem.sale.service.SaleService;
 import com.flashsale.ordersystem.shared.port.SaleStockPort;
 import com.flashsale.ordersystem.sale.domain.enums.SaleStatus;
 import com.flashsale.ordersystem.sale.domain.model.Sale;
@@ -20,10 +21,8 @@ import java.util.List;
 @Slf4j
 public class SaleScheduler {
     private final   SaleRepository saleRepository;
-    private final SaleItemRepository saleItemRepository;
-    private final SaleStockPort saleStockPort;
+    private final SaleService saleService;
     @Scheduled(fixedRate = 5000)
-    @Transactional
     public void processSales(){
         LocalDateTime now = LocalDateTime.now();
         startSale(now);
@@ -34,46 +33,15 @@ public class SaleScheduler {
         List<Sale> toStart = saleRepository
                 .findByStartTimeBeforeAndStatus(now, SaleStatus.PENDING);
         for (Sale sale : toStart){
-            activateSale(sale);
+            saleService.activateSale(sale.getId());
         }
-    }
-
-    private void activateSale(Sale sale){
-        log.info("activating sale {}",sale.getId());
-        List<SaleItem> items = saleItemRepository.findAllBySaleId(sale.getId());
-        long ttl = java.time.Duration
-                .between(LocalDateTime.now(), sale.getEndTime())
-                .getSeconds();
-        ttl = Math.max(ttl, 60);
-
-        for (SaleItem item : items){
-            saleStockPort.initializeSaleStock(sale.getId(),
-                    item.getProduct().getId(),
-                    item.getTotalStock(),
-                    ttl);
-        }
-        saleStockPort.activateSale(sale.getId(),ttl);
-        sale.setStatus(SaleStatus.ACTIVE);
-        saleRepository.save(sale);
     }
 
     private  void  endSale(LocalDateTime now){
         List<Sale> toEnd = saleRepository
                 .findByEndTimeBeforeAndStatus(now,SaleStatus.ACTIVE);
         for (Sale sale : toEnd){
-            deactivateSale(sale);
+            saleService.deactivateSale(sale.getId());
         }
-    }
-
-    private void deactivateSale(Sale sale){
-        log.info("Ending sale {}",sale.getId());
-
-        List<SaleItem> items = saleItemRepository.findAllBySaleId(sale.getId());
-        for (SaleItem item : items) {
-            saleStockPort.deactivateSale(sale.getId(),item.getProduct().getId());
-        }
-        saleStockPort.deactivateSale(sale.getId());
-        sale.setStatus(SaleStatus.ENDED);
-        saleRepository.save(sale);
     }
 }

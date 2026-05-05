@@ -1,6 +1,6 @@
 package com.flashsale.ordersystem.product.service;
 
-import com.flashsale.ordersystem.shared.exception.CustomException;
+import com.flashsale.ordersystem.shared.exception.BusinessException;
 import com.flashsale.ordersystem.shared.exception.ErrorCode;
 import com.flashsale.ordersystem.product.presentation.dto.CreateProductRequest;
 import com.flashsale.ordersystem.product.presentation.dto.ProductResponse;
@@ -27,6 +27,6 @@ public class ProductService {
 
     public Product getProductOrThrow(Long productId) {
         return productRepository.findById(productId)
-                .orElseThrow(() -> new CustomException(ErrorCode.PRODUCT_NOT_FOUND));
+                .orElseThrow(() -> new BusinessException(ErrorCode.PRODUCT_NOT_FOUND));
     }
 }

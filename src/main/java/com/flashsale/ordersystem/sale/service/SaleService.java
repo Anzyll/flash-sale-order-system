@@ -1,6 +1,6 @@
 package com.flashsale.ordersystem.sale.service;
 
-import com.flashsale.ordersystem.shared.exception.CustomException;
+import com.flashsale.ordersystem.shared.exception.BusinessException;
 import com.flashsale.ordersystem.shared.exception.ErrorCode;
 import com.flashsale.ordersystem.product.service.ProductService;
 import com.flashsale.ordersystem.product.domain.Product;
@@ -14,12 +14,15 @@ import com.flashsale.ordersystem.sale.presentation.mapper.SaleMapper;
 import com.flashsale.ordersystem.sale.repository.SaleItemRepository;
 import com.flashsale.ordersystem.sale.repository.SaleRepository;
 import com.flashsale.ordersystem.sale.presentation.dto.SaleData;
+import com.flashsale.ordersystem.shared.port.SaleStockPort;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.dao.DataIntegrityViolationException;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
+
+import java.time.Duration;
 import java.time.LocalDateTime;
 import java.util.List;
 
@@ -30,6 +33,7 @@ public class SaleService {
     private  final SaleRepository saleRepository;
     private final ProductService productService;
     private final SaleItemRepository saleItemRepository;
+    private final SaleStockPort saleStockPort;
 
     @Transactional
     public Sale createSale(@Valid CreateSaleRequest request) {
@@ -44,20 +48,20 @@ public class SaleService {
         log.info("Add product to sale. saleId={}, productId={}",
                 saleId, request.productId());
         Sale sale = saleRepository.findById(saleId)
-                .orElseThrow(() -> new CustomException(ErrorCode.SALE_NOT_FOUND));
+                .orElseThrow(() -> new BusinessException(ErrorCode.SALE_NOT_FOUND));
 
         if (sale.getEndTime().isBefore(LocalDateTime.now())) {
-            throw new CustomException(ErrorCode.SALE_EXPIRED);
+            throw new BusinessException(ErrorCode.SALE_EXPIRED);
         }
 
         Product product = productService.getProductOrThrow(request.productId());
 
         if (request.salePrice().signum() <= 0) {
-            throw new CustomException(ErrorCode.INVALID_PRICE);
+            throw new BusinessException(ErrorCode.INVALID_PRICE);
         }
 
         if (request.totalStock() <= 0) {
-            throw new CustomException(ErrorCode.INVALID_STOCK);
+            throw new BusinessException(ErrorCode.INVALID_STOCK);
         }
 
         SaleItem saleItem = SaleItemMapper.toEntity(request, sale, product);
@@ -71,7 +75,7 @@ public class SaleService {
         } catch (DataIntegrityViolationException e) {
             log.warn("Product already in sale. saleId={}, productId={}",
                     saleId, request.productId());
-            throw new CustomException(ErrorCode.PRODUCT_ALREADY_IN_SALE);
+            throw new BusinessException(ErrorCode.PRODUCT_ALREADY_IN_SALE);
         }
     }
 
@@ -81,36 +85,35 @@ public class SaleService {
 
     public List<SaleItem> getSaleItems(Long saleId) {
         saleRepository.findById(saleId)
-                    .orElseThrow(() -> new CustomException(ErrorCode.SALE_NOT_FOUND));
+                    .orElseThrow(() -> new BusinessException(ErrorCode.SALE_NOT_FOUND));
 
             return saleItemRepository.findAllBySaleId(saleId);
         }
 
     public void validateSaleExists(Long saleId) {
        Sale sale = saleRepository.findById(saleId)
-                .orElseThrow(()->new CustomException(ErrorCode.SALE_NOT_FOUND));
+                .orElseThrow(()->new BusinessException(ErrorCode.SALE_NOT_FOUND));
 
        if (sale.getStatus() != SaleStatus.ACTIVE) {
-            throw new CustomException(ErrorCode.SALE_NOT_ACTIVE);
+            throw new BusinessException(ErrorCode.SALE_NOT_ACTIVE);
         }
     }
 
     public void validateProductInSale(Long saleId, Long productId) {
         boolean exists = saleItemRepository.existsBySaleIdAndProductId(saleId, productId);
         if (!exists) {
-            throw new CustomException(ErrorCode.PRODUCT_NOT_FOUND);
+            throw new BusinessException(ErrorCode.PRODUCT_NOT_FOUND);
         }
-
     }
 
     public SaleData getSaleAndItem(Long saleId, Long productId) {
 
         Sale sale = saleRepository.findById(saleId)
-                .orElseThrow(() -> new CustomException(ErrorCode.SALE_NOT_FOUND));
+                .orElseThrow(() -> new BusinessException(ErrorCode.SALE_NOT_FOUND));
 
         SaleItem item = saleItemRepository
                 .findBySaleIdAndProductId(saleId, productId)
-                .orElseThrow(() -> new CustomException(ErrorCode.PRODUCT_NOT_FOUND));
+                .orElseThrow(() -> new BusinessException(ErrorCode.PRODUCT_NOT_FOUND));
 
         return new SaleData(
                 sale,
@@ -122,8 +125,60 @@ public class SaleService {
 
         SaleItem item = saleItemRepository
                 .findBySaleIdAndProductId(saleId, productId)
-                .orElseThrow(() -> new CustomException(ErrorCode.PRODUCT_NOT_FOUND));
+                .orElseThrow(() -> new BusinessException(ErrorCode.PRODUCT_NOT_FOUND));
 
         return item.getTotalStock();
+    }
+
+    @Transactional
+    public void activateSale(Long saleId){
+        Sale sale = saleRepository.findById(saleId).orElseThrow();
+        if (sale.getStatus() != SaleStatus.PENDING) return;
+        List<SaleItem> items = saleItemRepository.findAllBySaleId(saleId);
+        long ttl = Duration
+                .between(LocalDateTime.now(), sale.getEndTime())
+                .getSeconds();
+        ttl = Math.max(ttl, 60);
+
+        sale.setStatus(SaleStatus.ACTIVE);
+        saleRepository.save(sale);
+
+        try {
+            for (SaleItem item : items){
+                saleStockPort.initializeSaleStock(
+                        saleId,
+                        item.getProduct().getId(),
+                        item.getTotalStock(),
+                        ttl
+                );
+            }
+            saleStockPort.activateSale(saleId, ttl);
+
+        } catch (Exception e) {
+            log.error("Redis init failed for sale {}", saleId, e);
+        }
+    }
+
+    @Transactional
+    public void deactivateSale(Long saleId){
+        Sale sale = saleRepository.findById(saleId).orElseThrow();
+        if (sale.getStatus() != SaleStatus.ACTIVE) return;
+        List<SaleItem> items = saleItemRepository.findAllBySaleId(saleId);
+
+        sale.setStatus(SaleStatus.ENDED);
+        saleRepository.save(sale);
+
+        try {
+            for (SaleItem item : items){
+                saleStockPort.deactivateSale(
+                        saleId,
+                        item.getProduct().getId()
+                );
+            }
+            saleStockPort.deactivateSale(saleId);
+
+        } catch (Exception e) {
+            log.error("Redis deactivate failed for sale {}", saleId, e);
+        }
     }
 }

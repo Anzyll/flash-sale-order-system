@@ -1,7 +1,7 @@
 package com.flashsale.ordersystem.user.service;
 
 
-import com.flashsale.ordersystem.shared.exception.CustomException;
+import com.flashsale.ordersystem.shared.exception.BusinessException;
 import com.flashsale.ordersystem.shared.exception.ErrorCode;
 import com.flashsale.ordersystem.user.domain.User;
 import com.flashsale.ordersystem.user.repository.UserRepository;
@@ -16,7 +16,7 @@ public class UserService {
 
     public User getUserOrThrow(String keycloakId) {
         return userRepository.findByKeycloakId(keycloakId)
-                .orElseThrow(() -> new CustomException(ErrorCode.USER_NOT_FOUND));
+                .orElseThrow(() -> new BusinessException(ErrorCode.USER_NOT_FOUND));
     }
 
     public boolean existsByEmail(String email) {

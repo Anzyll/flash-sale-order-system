@@ -14,13 +14,5 @@ import java.util.Optional;
 public interface SaleItemRepository extends JpaRepository<SaleItem,Long> {
     List<SaleItem> findAllBySaleId(Long saleId);
     Optional<SaleItem> findBySaleIdAndProductId(Long saleId,Long productId);
-    List<SaleItem> findBySaleStatus(SaleStatus saleStatus);
-    @Query("""
-    SELECT s.endTime FROM SaleItem si
-    JOIN si.sale s
-    WHERE si.sale.id = :saleId AND si.product.id = :productId
-""")
-    LocalDateTime findSaleEndTime(Long saleId, Long productId);
-
     boolean existsBySaleIdAndProductId(Long saleId, Long productId);
 }

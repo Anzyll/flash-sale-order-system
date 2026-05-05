@@ -1,7 +1,7 @@
 package com.flashsale.ordersystem.user.service;
 
 import com.flashsale.ordersystem.user.presentation.dto.RegisterRequest;
-import com.flashsale.ordersystem.shared.exception.CustomException;
+import com.flashsale.ordersystem.shared.exception.BusinessException;
 import com.flashsale.ordersystem.shared.exception.ErrorCode;
 import jakarta.ws.rs.core.Response;
 import lombok.RequiredArgsConstructor;
@@ -26,7 +26,7 @@ public class AuthService {
         log.info("User registration started. email={}", request.email());
         if (userService.existsByEmail(request.email())) {
             log.warn("Registration failed. Email already exists. email={}", request.email());
-            throw new CustomException(ErrorCode.EMAIL_ALREADY_EXISTS);
+            throw new BusinessException(ErrorCode.EMAIL_ALREADY_EXISTS);
         }
 
         UserRepresentation user = new UserRepresentation();
@@ -38,7 +38,7 @@ public class AuthService {
 
         if (response.getStatus() == 409) {
             log.warn("Registration failed. Email already exists. email={}", request.email());
-            throw new CustomException(ErrorCode.EMAIL_ALREADY_EXISTS);
+            throw new BusinessException(ErrorCode.EMAIL_ALREADY_EXISTS);
         }
 
         if (response.getStatus() != 201) {
