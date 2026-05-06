@@ -28,10 +28,10 @@ public class RedisStockAdapter implements StockReservationPort, SaleStockPort {
     @Override
     public boolean tryPurchase(String  userId, Long saleId, Long productId, int quantity) {
         String stock_key = "stock:%d:%d".formatted(saleId, productId);
-        String purchase_done_key = "purchase_done:%s:%d:%d".formatted(userId, saleId, productId);
+        String purchase_reserved_key = "purchase_reserved:%s:%d:%d".formatted(userId, saleId, productId);
         Long result = redisTemplate.execute(
                 purchaseScript,
-                List.of(stock_key, purchase_done_key),
+                List.of(stock_key, purchase_reserved_key),
                 String.valueOf(quantity)
         );
         if (result == null) {
@@ -61,7 +61,7 @@ public class RedisStockAdapter implements StockReservationPort, SaleStockPort {
         log.warn("Reverting stock. userId={}, saleId={}, productId={}, quantity={}",
                 userId, saleId, productId, quantity);
         String stockKey = "stock:%d:%d".formatted(saleId, productId);
-        String purchaseKey = "purchase_done:%s:%d:%d".formatted(userId, saleId, productId);
+        String purchaseKey = "purchase_reserved:%s:%d:%d".formatted(userId, saleId, productId);
         Long result = redisTemplate.opsForValue().increment(stockKey,quantity);
         if (result==null){
             throw new InfrastructureException(ErrorCode.REDIS_EXECUTION_FAILED);
@@ -161,6 +161,16 @@ public class RedisStockAdapter implements StockReservationPort, SaleStockPort {
     public boolean isSaleActive(Long saleId) {
         String value = redisTemplate.opsForValue().get("sale_active:" + saleId);
         return "true".equals(value);
+    }
+
+    @Override
+    public void confirmPurchase(String userId, Long saleId, Long productId) {
+        String reservedKey = "purchase_reserved:%s:%d:%d"
+                .formatted(userId, saleId, productId);
+        String doneKey = "purchase_done:%s:%d:%d"
+                .formatted(userId, saleId, productId);
+        redisTemplate.delete(reservedKey);
+        redisTemplate.opsForValue().set(doneKey, "1");
     }
 
 

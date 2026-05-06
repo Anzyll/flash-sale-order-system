@@ -6,4 +6,5 @@ public interface StockReservationPort {
     void recoverStock(Long saleId,Long productId, int remainingStock,long ttlSeconds) ;
     void waitForStock(Long saleId, Long productId);
     boolean isSaleActive(Long saleId);
+    void confirmPurchase(String userId, Long saleId, Long productId);
 }

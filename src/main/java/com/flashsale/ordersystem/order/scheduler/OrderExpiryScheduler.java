@@ -19,9 +19,9 @@ public class OrderExpiryScheduler {
     private final OrderRepository orderRepository;
     private final StockReservationPort stockReservationPort;
     @Transactional
-    @Scheduled(fixedDelay = 60000)
+    @Scheduled(fixedDelay = 2000)
     public void expirePendingOrders(){
-        Instant threshold = Instant.now().minusSeconds(300);
+        Instant threshold = Instant.now().minusSeconds(15);
         List<Order> orders = orderRepository.findByStatusAndCreatedAtBefore(OrderStatus.PENDING,threshold);
         for(Order order : orders){
             int updated = orderRepository.expireIfPending(order.getId(),OrderStatus.PENDING,OrderStatus.EXPIRED);

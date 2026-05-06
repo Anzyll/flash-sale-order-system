@@ -95,13 +95,11 @@ public class OrderService implements OrderProcessingUseCase {
     @Override
     @Transactional
     public void processOrder(OrderPlacedEvent event){
-        try{
-            processedEventRepository.save(new ProcessedEvent(event.getEventId()));
-        }
-        catch (DataIntegrityViolationException e) {
+        if (processedEventRepository.existsById(event.getEventId())) {
             log.warn("Duplicate event detected. eventId={}", event.getEventId());
             return;
         }
+
         Order order = null;
         boolean completed = false;
 
@@ -134,6 +132,11 @@ public class OrderService implements OrderProcessingUseCase {
             order.setStatus(OrderStatus.CONFIRMED);
             orderRepository.save(order);
 
+            stockReservationPort.confirmPurchase(event.getUserId(),event.getSaleId(), event.getProductId());
+
+            processedEventRepository.save(
+                    new ProcessedEvent(event.getEventId())
+            );
             completed = true;
             log.info("Purchase CONFIRMED. eventId={}", event.getEventId());
         }
@@ -159,9 +162,11 @@ public class OrderService implements OrderProcessingUseCase {
             }
         }
         catch (Exception e) {
+            order.setStatus(OrderStatus.PENDING);
+            orderRepository.save(order);
             log.error("System failure. Leaving order in PENDING. eventId={}",
                     event.getEventId(), e);
-            throw e;
+
         }
     }
     private void recoverStockFromDB(Long saleId, Long productId) {
