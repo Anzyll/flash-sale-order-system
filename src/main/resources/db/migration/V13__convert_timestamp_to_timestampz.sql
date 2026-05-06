@@ -1,0 +1,3 @@
+ALTER TABLE processed_events
+ALTER COLUMN processed_at TYPE TIMESTAMP WITH TIME ZONE
+USING processed_at AT TIME ZONE 'UTC';

@@ -8,7 +8,7 @@ import org.springframework.data.jpa.repository.Query;
 import org.springframework.data.repository.query.Param;
 import org.springframework.stereotype.Repository;
 
-import java.time.LocalDateTime;
+import java.time.Instant;
 import java.util.List;
 
 @Repository
@@ -22,7 +22,7 @@ public interface OrderRepository extends JpaRepository<Order,Long> {
 """)
     long countSoldQuantity(Long saleId, Long productId, OrderStatus status);
 
-    List<Order> findByStatusAndCreatedAtBefore(OrderStatus status, LocalDateTime threshold);
+    List<Order> findByStatusAndCreatedAtBefore(OrderStatus status, Instant threshold);
 
     @Modifying
     @Query("""

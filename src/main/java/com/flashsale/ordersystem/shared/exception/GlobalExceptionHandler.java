@@ -8,7 +8,7 @@ import org.springframework.web.bind.MethodArgumentNotValidException;
 import org.springframework.web.bind.annotation.ExceptionHandler;
 import org.springframework.web.bind.annotation.RestControllerAdvice;
 
-import java.time.LocalDateTime;
+import java.time.Instant;
 
 @RestControllerAdvice
 @Slf4j
@@ -29,7 +29,7 @@ public class GlobalExceptionHandler {
         return ResponseEntity
                 .status(errorCode.getStatus())
                 .body(new ErrorResponse(
-                        LocalDateTime.now(),
+                        Instant.now(),
                         errorCode.getStatus(),
                         errorCode.name(),
                         errorCode.getMessage(),
@@ -54,7 +54,7 @@ public class GlobalExceptionHandler {
         return ResponseEntity
                 .status(errorCode.getStatus())
                 .body(new ErrorResponse(
-                        LocalDateTime.now(),
+                        Instant.now(),
                         errorCode.getStatus(),
                         errorCode.name(),
                         errorCode.getMessage(),
@@ -78,7 +78,7 @@ public class GlobalExceptionHandler {
 
         return ResponseEntity.badRequest().body(
                 new ErrorResponse(
-                        LocalDateTime.now(),
+                        Instant.now(),
                         400,
                         "VALIDATION_ERROR",
                         errorMessage,
@@ -97,7 +97,7 @@ public class GlobalExceptionHandler {
 
         return ResponseEntity.status(500).body(
                 new ErrorResponse(
-                        LocalDateTime.now(),
+                        Instant.now(),
                         500,
                         "INTERNAL_SERVER_ERROR",
                         "Something went wrong",

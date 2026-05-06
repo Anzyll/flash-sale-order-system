@@ -6,7 +6,7 @@ import jakarta.persistence.Table;
 import lombok.NoArgsConstructor;
 
 
-import java.time.LocalDateTime;
+import java.time.Instant;
 
 @Entity
 @NoArgsConstructor
@@ -14,7 +14,7 @@ import java.time.LocalDateTime;
 public class ProcessedEvent {
     @Id
     private String eventId;
-    private LocalDateTime processedAt = LocalDateTime.now();
+    private Instant processedAt = Instant.now();
 
     public ProcessedEvent(String eventId) {
         this.eventId=eventId;

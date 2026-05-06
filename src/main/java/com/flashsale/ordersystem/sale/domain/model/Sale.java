@@ -7,7 +7,7 @@ import lombok.Getter;
 import lombok.NoArgsConstructor;
 import lombok.Setter;
 
-import java.time.LocalDateTime;
+import java.time.Instant;
 import java.util.List;
 
 @Entity
@@ -23,11 +23,11 @@ public class Sale {
     @Column(name = "title", nullable = false)
     private String title;
     @Column(name = "start_time", nullable = false)
-    private LocalDateTime startTime;
+    private Instant startTime;
     @Column(name = "end_time", nullable = false)
-    private LocalDateTime endTime;
+    private Instant endTime;
     @Column(name = "created_at", nullable = false)
-    private LocalDateTime createdAt;
+    private Instant createdAt;
     @Enumerated(EnumType.STRING)
     @Column(name = "status",nullable = false)
     private SaleStatus status;
@@ -36,7 +36,7 @@ public class Sale {
     @PrePersist
     public void prePersist() {
         if (this.createdAt == null) {
-            this.createdAt = LocalDateTime.now();
+            this.createdAt = Instant.now();
         }
         if (this.status == null) {
             this.status = SaleStatus.PENDING;

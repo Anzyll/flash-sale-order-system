@@ -25,7 +25,7 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.time.Duration;
-import java.time.LocalDateTime;
+import java.time.Instant;
 
 @Service
 @RequiredArgsConstructor
@@ -42,16 +42,7 @@ public class OrderService implements OrderProcessingUseCase {
     public void purchase(String userId,Long saleId, Long productId) {
         log.info("Purchased started. userId={}, saleId={}, productId={}",
                 userId, saleId, productId);
-        userService.getUserOrThrow(userId);
-        log.info("user finshed");
-        saleService.validateSaleExists(saleId);
-        log.info("validate sale");
-        saleService.validateProductInSale(saleId, productId);
-        log.info("validate product");
-
-        if (!stockReservationPort.isSaleActive(saleId)) {
-            throw new BusinessException(ErrorCode.SALE_NOT_ACTIVE);
-        }
+            validatePurchaseRequest(userId,saleId,productId);
             boolean success;
             try{
                 success = stockReservationPort.tryPurchase(userId,saleId, productId, DEFAULT_QUANTITY);
@@ -70,7 +61,7 @@ public class OrderService implements OrderProcessingUseCase {
                 else {
                     log.error("Redis failure. errorCode={}, saleId={}, productId={}",
                             e.getErrorCode(), saleId, productId, e);
-                    throw new BusinessException(ErrorCode.INSUFFICIENT_STOCK);
+                    throw new InfrastructureException(ErrorCode.REDIS_EXECUTION_FAILED);
                 }
             }
             if (!success){
@@ -87,8 +78,18 @@ public class OrderService implements OrderProcessingUseCase {
                     userId,
                     saleId,
                     productId,
-                    System.currentTimeMillis());
+                    Instant.now());
             orderEventPublisher.publish(event);
+    }
+
+    private void validatePurchaseRequest(String userId, Long saleId, Long productId) {
+        userService.getUserOrThrow(userId);
+        saleService.validateSaleExists(saleId);
+        saleService.validateProductInSale(saleId, productId);
+
+        if (!stockReservationPort.isSaleActive(saleId)) {
+            throw new BusinessException(ErrorCode.SALE_NOT_ACTIVE);
+        }
     }
 
     @Override
@@ -117,10 +118,12 @@ public class OrderService implements OrderProcessingUseCase {
             order.setUser(user);
             order.setSale(saleData.sale());
             order.setProduct(saleData.product());
-            order.setCreatedAt(LocalDateTime.now());
+            order.setCreatedAt(Instant.now());
             order.setTotalAmount(saleData.price());
 
-
+           if (true){
+               throw new InfrastructureException(ErrorCode.KAFKA_UNAVAILABLE);
+           }
             Order savedOrder = orderRepository.save(order);
 
             OrderItem orderItem = new OrderItem();
@@ -176,7 +179,7 @@ public class OrderService implements OrderProcessingUseCase {
         int remaining = Math.max(0, initialStock - (int) sold);
         var saleData = saleService.getSaleAndItem(saleId, productId);
         long ttl = Duration.between(
-                LocalDateTime.now(),
+                Instant.now(),
                 saleData.sale().getEndTime()
         ).getSeconds();
         ttl = Math.max(ttl, 60);

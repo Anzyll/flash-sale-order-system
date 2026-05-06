@@ -9,8 +9,7 @@ import lombok.extern.slf4j.Slf4j;
 import org.springframework.scheduling.annotation.Scheduled;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
-
-import java.time.LocalDateTime;
+import java.time.Instant;
 import java.util.List;
 
 @Service
@@ -22,7 +21,7 @@ public class OrderExpiryScheduler {
     @Transactional
     @Scheduled(fixedDelay = 60000)
     public void expirePendingOrders(){
-        LocalDateTime threshold = LocalDateTime.now().minusMinutes(5);
+        Instant threshold = Instant.now().minusSeconds(300);
         List<Order> orders = orderRepository.findByStatusAndCreatedAtBefore(OrderStatus.PENDING,threshold);
         for(Order order : orders){
             int updated = orderRepository.expireIfPending(order.getId(),OrderStatus.PENDING,OrderStatus.EXPIRED);

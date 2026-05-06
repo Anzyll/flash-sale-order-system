@@ -1,9 +1,9 @@
 package com.flashsale.ordersystem.shared.exception;
 
-import java.time.LocalDateTime;
+import java.time.Instant;
 
 public record ErrorResponse(
-        LocalDateTime timestamp,
+        Instant timestamp,
         int status,
         String errorCode,
         String message,

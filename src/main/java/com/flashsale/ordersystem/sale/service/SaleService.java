@@ -23,7 +23,7 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.time.Duration;
-import java.time.LocalDateTime;
+import java.time.Instant;
 import java.util.List;
 
 @Service
@@ -47,25 +47,12 @@ public class SaleService {
     public SaleItem addProductToSale(Long saleId, AddProductToSaleRequest request) {
         log.info("Add product to sale. saleId={}, productId={}",
                 saleId, request.productId());
+
         Sale sale = saleRepository.findById(saleId)
                 .orElseThrow(() -> new BusinessException(ErrorCode.SALE_NOT_FOUND));
-
-        if (sale.getEndTime().isBefore(LocalDateTime.now())) {
-            throw new BusinessException(ErrorCode.SALE_EXPIRED);
-        }
-
         Product product = productService.getProductOrThrow(request.productId());
-
-        if (request.salePrice().signum() <= 0) {
-            throw new BusinessException(ErrorCode.INVALID_PRICE);
-        }
-
-        if (request.totalStock() <= 0) {
-            throw new BusinessException(ErrorCode.INVALID_STOCK);
-        }
-
-        SaleItem saleItem = SaleItemMapper.toEntity(request, sale, product);
-
+        validateAddProductToSale(sale,request);
+        SaleItem saleItem = SaleItemMapper.toEntity(request,sale,product );
         try {
             SaleItem savedItem = saleItemRepository.save(saleItem);
             log.info("Product added to sale. saleId={}, productId={}",
@@ -78,6 +65,23 @@ public class SaleService {
             throw new BusinessException(ErrorCode.PRODUCT_ALREADY_IN_SALE);
         }
     }
+
+    private void validateAddProductToSale(Sale sale,AddProductToSaleRequest request){
+
+        if (sale.getEndTime().isBefore(Instant.now())) {
+            throw new BusinessException(ErrorCode.SALE_EXPIRED);
+        }
+
+        if (request.salePrice().signum() <= 0) {
+            throw new BusinessException(ErrorCode.INVALID_PRICE);
+        }
+
+        if (request.totalStock() <= 0) {
+            throw new BusinessException(ErrorCode.INVALID_STOCK);
+        }
+
+    }
+
 
     public List<Sale> getSales() {
         return saleRepository.findAll();
@@ -136,7 +140,7 @@ public class SaleService {
         if (sale.getStatus() != SaleStatus.PENDING) return;
         List<SaleItem> items = saleItemRepository.findAllBySaleId(saleId);
         long ttl = Duration
-                .between(LocalDateTime.now(), sale.getEndTime())
+                .between(Instant.now(), sale.getEndTime())
                 .getSeconds();
         ttl = Math.max(ttl, 60);
 

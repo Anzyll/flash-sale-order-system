@@ -1,19 +1,14 @@
 package com.flashsale.ordersystem.sale.scheduler;
 
 import com.flashsale.ordersystem.sale.service.SaleService;
-import com.flashsale.ordersystem.shared.port.SaleStockPort;
 import com.flashsale.ordersystem.sale.domain.enums.SaleStatus;
 import com.flashsale.ordersystem.sale.domain.model.Sale;
-import com.flashsale.ordersystem.sale.domain.model.SaleItem;
-import com.flashsale.ordersystem.sale.repository.SaleItemRepository;
 import com.flashsale.ordersystem.sale.repository.SaleRepository;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.scheduling.annotation.Scheduled;
 import org.springframework.stereotype.Service;
-import org.springframework.transaction.annotation.Transactional;
-
-import java.time.LocalDateTime;
+import java.time.Instant;
 import java.util.List;
 
 @Service
@@ -24,12 +19,12 @@ public class SaleScheduler {
     private final SaleService saleService;
     @Scheduled(fixedRate = 5000)
     public void processSales(){
-        LocalDateTime now = LocalDateTime.now();
+        Instant now = Instant.now();
         startSale(now);
         endSale(now);
     }
 
-    private void startSale(LocalDateTime now){
+    private void startSale(Instant now){
         List<Sale> toStart = saleRepository
                 .findByStartTimeBeforeAndStatus(now, SaleStatus.PENDING);
         for (Sale sale : toStart){
@@ -37,7 +32,7 @@ public class SaleScheduler {
         }
     }
 
-    private  void  endSale(LocalDateTime now){
+    private  void  endSale(Instant now){
         List<Sale> toEnd = saleRepository
                 .findByEndTimeBeforeAndStatus(now,SaleStatus.ACTIVE);
         for (Sale sale : toEnd){

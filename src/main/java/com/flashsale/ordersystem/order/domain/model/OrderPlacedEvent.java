@@ -5,6 +5,8 @@ import lombok.AllArgsConstructor;
 import lombok.Getter;
 import lombok.NoArgsConstructor;
 
+import java.time.Instant;
+
 @NoArgsConstructor
 @AllArgsConstructor
 @Getter
@@ -13,5 +15,5 @@ public class OrderPlacedEvent {
     private String userId;
     private Long saleId;
     private Long productId;
-    private Long timestamp;
+    private Instant timestamp;
 }

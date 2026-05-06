@@ -11,7 +11,7 @@ import lombok.NoArgsConstructor;
 import lombok.Setter;
 
 import java.math.BigDecimal;
-import java.time.LocalDateTime;
+import java.time.Instant;
 
 @Entity
 @Table(name = "orders")
@@ -42,8 +42,11 @@ public class Order {
     @Column(name = "total_amount")
     private BigDecimal totalAmount;
 
-    @Column(name = "created_at")
-    private LocalDateTime createdAt;
+    @Column(name = "created_at",nullable = false)
+    private Instant createdAt;
 
-
+    @PrePersist
+    public void prePersist() {
+        this.createdAt = Instant.now();
+    }
 }
