@@ -11,8 +11,6 @@ import org.slf4j.MDC;
 import org.springframework.kafka.core.KafkaTemplate;
 import org.springframework.stereotype.Service;
 
-import java.util.concurrent.ExecutionException;
-
 @Slf4j
 @Service
 @RequiredArgsConstructor
@@ -35,17 +33,6 @@ public class OrderEventPublisherAdapter implements OrderEventPublisher {
                     event.getEventId(), event.getProductId());
             kafkaTemplate.send(record).get();
             log.info("Kafka success. eventId={}", event.getEventId());
-//            kafkaTemplate.send(record).whenComplete((result,ex)->{
-//                if(ex!=null){
-//                    retryQueue.push(new RetryEvent(event,0));
-//                }
-//                else {
-//                    log.info("Kafka success. eventId={}, offset={}",
-//                            event.getEventId(),
-//                            result.getRecordMetadata().offset());
-//                }
-//                log.info("Kafka success. eventId={}", event.getEventId());
-//            });
     }
         catch (Exception e){
             log.error("Immediate Kafka failure → retry queue. eventId={}", event.getEventId(), e);

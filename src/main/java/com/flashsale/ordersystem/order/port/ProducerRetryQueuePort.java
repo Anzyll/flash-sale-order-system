@@ -6,4 +6,5 @@ public interface ProducerRetryQueuePort {
     void push(RetryEvent event);
     RetryEvent pop();
     void pushToDLQ(RetryEvent event);
+    RetryEvent popFromDlq();
 }

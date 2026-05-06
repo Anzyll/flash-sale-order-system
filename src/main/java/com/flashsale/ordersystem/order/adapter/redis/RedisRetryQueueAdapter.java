@@ -42,7 +42,6 @@ public class RedisRetryQueueAdapter implements ProducerRetryQueuePort {
 
     }
 
-    @Override
     public void pushToDLQ(RetryEvent event) {
         try {
             String json = objectMapper.writeValueAsString(event);
@@ -53,4 +52,18 @@ public class RedisRetryQueueAdapter implements ProducerRetryQueuePort {
         }
 
     }
+
+    @Override
+    public RetryEvent popFromDlq() {
+        String json = stringRedisTemplate.opsForList().leftPop(DLQ_KEY);
+        if (json == null) return null;
+        try{
+            return   objectMapper.readValue(json,RetryEvent.class);
+        }
+        catch (Exception e){
+            throw  new InfrastructureException(ErrorCode.REDIS_DESERIALIZATION_ERROR);
+        }
+
+    }
+
 }

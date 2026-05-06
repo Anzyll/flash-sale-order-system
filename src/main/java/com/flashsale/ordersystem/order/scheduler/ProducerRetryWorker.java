@@ -18,10 +18,10 @@ public class ProducerRetryWorker {
     private final ProducerRetryQueuePort retryQueue;
     private final KafkaTemplate<String, OrderPlacedEvent> kafkaTemplate;
 
-    private static final int MAX_RETRIES = 100;
+    private static final int MAX_RETRIES = 5;
     private static final int BATCH_SIZE = 50;
 
-    @Scheduled(fixedDelay = 500)
+    @Scheduled(fixedDelay = 2000)
     public void processRetryQueue(){
         for(int i = 0; i <BATCH_SIZE; i++){
             RetryEvent retryEvent = retryQueue.pop();
@@ -32,29 +32,9 @@ public class ProducerRetryWorker {
             OrderPlacedEvent event = retryEvent.getEvent();
 
             try {
-                kafkaTemplate.send(buildRecord(event))
-                        .whenComplete((result, ex) -> {
-                            if (ex != null) {
-
-                                int attempts = retryEvent.incrementAndGet();
-
-                                if (attempts > MAX_RETRIES) {
-                                    log.error("Max retries exceeded → DLQ. eventId={}",
-                                            event.getEventId(), ex);
-                                    retryQueue.pushToDLQ(retryEvent);
-
-                                } else {
-                                    log.warn("Retry failed → requeue. eventId={}, attempt={}",
-                                            event.getEventId(), attempts);
-                                    retryQueue.push(retryEvent);
-                                }
-
-                            } else {
-                                log.info("Retry success. eventId={}, offset={}",
-                                        event.getEventId(),
-                                        result.getRecordMetadata().offset());
-                            }
-                        });
+                kafkaTemplate.send(buildRecord(event)).get();
+                log.info("Retry success. eventId={}",
+                        event.getEventId());
 
             } catch (Exception e) {
                 int attempts = retryEvent.incrementAndGet();
