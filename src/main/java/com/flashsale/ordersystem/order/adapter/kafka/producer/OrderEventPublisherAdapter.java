@@ -1,7 +1,7 @@
 package com.flashsale.ordersystem.order.adapter.kafka.producer;
 
-import com.flashsale.ordersystem.shared.exception.ErrorCode;
-import com.flashsale.ordersystem.shared.exception.InfrastructureException;
+import com.flashsale.ordersystem.order.adapter.redis.RetryEvent;
+import com.flashsale.ordersystem.order.port.ProducerRetryQueuePort;
 import com.flashsale.ordersystem.order.port.OrderEventPublisher;
 import com.flashsale.ordersystem.order.domain.model.OrderPlacedEvent;
 import lombok.RequiredArgsConstructor;
@@ -11,11 +11,14 @@ import org.slf4j.MDC;
 import org.springframework.kafka.core.KafkaTemplate;
 import org.springframework.stereotype.Service;
 
+import java.util.concurrent.ExecutionException;
+
 @Slf4j
 @Service
 @RequiredArgsConstructor
 public class OrderEventPublisherAdapter implements OrderEventPublisher {
     private final KafkaTemplate<String,OrderPlacedEvent> kafkaTemplate;
+    private final ProducerRetryQueuePort retryQueue;
     @Override
     public void publish(OrderPlacedEvent event) {
         String correlationId = MDC.get("correlationId");
@@ -31,13 +34,22 @@ public class OrderEventPublisherAdapter implements OrderEventPublisher {
             log.info("Publishing order event. eventId={}, productId={}",
                     event.getEventId(), event.getProductId());
             kafkaTemplate.send(record).get();
-            log.info("Order event published. eventId={}, productId={}",
-                    event.getEventId(), event.getProductId());
-        }
+            log.info("Kafka success. eventId={}", event.getEventId());
+//            kafkaTemplate.send(record).whenComplete((result,ex)->{
+//                if(ex!=null){
+//                    retryQueue.push(new RetryEvent(event,0));
+//                }
+//                else {
+//                    log.info("Kafka success. eventId={}, offset={}",
+//                            event.getEventId(),
+//                            result.getRecordMetadata().offset());
+//                }
+//                log.info("Kafka success. eventId={}", event.getEventId());
+//            });
+    }
         catch (Exception e){
-            log.error("Kafka publish failed. eventId={}, productId={}",
-                    event.getEventId(), event.getProductId(), e);
-            throw new InfrastructureException(ErrorCode.KAFKA_UNAVAILABLE);
+            log.error("Immediate Kafka failure → retry queue. eventId={}", event.getEventId(), e);
+            retryQueue.push(new RetryEvent(event,0));
         }
 
     }

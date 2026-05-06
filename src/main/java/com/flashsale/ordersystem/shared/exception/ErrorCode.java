@@ -20,6 +20,8 @@ public enum ErrorCode {
     USER_NOT_FOUND(404, "USER_NOT_FOUND", "User not found"),
     EMAIL_ALREADY_EXISTS(409, "EMAIL_ALREADY_EXISTS", "Email already exists"),
     REDIS_EXECUTION_FAILED(500, "REDIS_EXECUTION_FAILED", "Redis execution failed"),
+    REDIS_SERIALIZATION_ERROR(500, "REDIS_SERIALIZATION_ERROR", "Failed to serialize data for Redis"),
+    REDIS_DESERIALIZATION_ERROR(500, "REDIS_DESERIALIZATION_ERROR", "Failed to deserialize data from Redis"),
     KAFKA_UNAVAILABLE(500, "KAFKA_UNAVAILABLE", "Kafka broker unavailable");
 
     private final int status;

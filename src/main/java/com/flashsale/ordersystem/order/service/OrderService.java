@@ -121,9 +121,6 @@ public class OrderService implements OrderProcessingUseCase {
             order.setCreatedAt(Instant.now());
             order.setTotalAmount(saleData.price());
 
-           if (true){
-               throw new InfrastructureException(ErrorCode.KAFKA_UNAVAILABLE);
-           }
             Order savedOrder = orderRepository.save(order);
 
             OrderItem orderItem = new OrderItem();
