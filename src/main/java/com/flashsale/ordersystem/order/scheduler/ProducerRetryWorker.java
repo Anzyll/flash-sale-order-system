@@ -50,7 +50,6 @@ public class ProducerRetryWorker {
                     retryQueue.push(retryEvent);
                 }
             }
-
         }
     }
     private ProducerRecord<String, OrderPlacedEvent> buildRecord(OrderPlacedEvent event) {

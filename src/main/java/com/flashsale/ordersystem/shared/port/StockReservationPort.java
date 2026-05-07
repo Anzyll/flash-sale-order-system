@@ -7,4 +7,5 @@ public interface StockReservationPort {
     void waitForStock(Long saleId, Long productId);
     boolean isSaleActive(Long saleId);
     void confirmPurchase(String userId, Long saleId, Long productId);
+    int getAvailableStock(Long saleId, Long productId);
 }

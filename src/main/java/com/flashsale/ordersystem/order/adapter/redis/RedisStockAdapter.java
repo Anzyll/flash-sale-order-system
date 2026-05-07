@@ -173,6 +173,16 @@ public class RedisStockAdapter implements StockReservationPort, SaleStockPort {
         redisTemplate.opsForValue().set(doneKey, "1");
     }
 
+    @Override
+    public int getAvailableStock(Long saleId, Long productId) {
+        String stockKey = "stock:%d:%d".formatted(saleId,productId);
+        String stockValue = redisTemplate.opsForValue().get(stockKey);
+        if (stockValue == null) {
+            return 0;
+        }
+        return Integer.parseInt(stockValue);
+    }
+
 
     public void waitForStock(Long saleId, Long productId) {
         String stockKey = "stock:%d:%d".formatted(saleId, productId);

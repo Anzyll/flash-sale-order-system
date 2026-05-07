@@ -1,5 +1,6 @@
 package com.flashsale.ordersystem.sale.service;
 
+import com.flashsale.ordersystem.sale.presentation.dto.ProductAvailabilityResponse;
 import com.flashsale.ordersystem.shared.exception.BusinessException;
 import com.flashsale.ordersystem.shared.exception.ErrorCode;
 import com.flashsale.ordersystem.product.service.ProductService;
@@ -15,6 +16,7 @@ import com.flashsale.ordersystem.sale.repository.SaleItemRepository;
 import com.flashsale.ordersystem.sale.repository.SaleRepository;
 import com.flashsale.ordersystem.sale.presentation.dto.SaleData;
 import com.flashsale.ordersystem.shared.port.SaleStockPort;
+import com.flashsale.ordersystem.shared.port.StockReservationPort;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
@@ -34,6 +36,7 @@ public class SaleService {
     private final ProductService productService;
     private final SaleItemRepository saleItemRepository;
     private final SaleStockPort saleStockPort;
+    private final StockReservationPort stockReservationPort;
 
     @Transactional
     public Sale createSale(@Valid CreateSaleRequest request) {
@@ -185,4 +188,26 @@ public class SaleService {
             log.error("Redis deactivate failed for sale {}", saleId, e);
         }
     }
+
+    public ProductAvailabilityResponse getProductAvailability(Long saleId, Long productId) {
+        int availableStock =
+                stockReservationPort.getAvailableStock(saleId, productId);
+
+        boolean soldOut = availableStock <= 0;
+
+        Sale sale = saleRepository.findById(saleId)
+                .orElseThrow(() ->
+                        new BusinessException(ErrorCode.SALE_NOT_FOUND));
+
+        String saleStatus = sale.getStatus().name();
+
+        return new ProductAvailabilityResponse(
+                saleId,
+                productId,
+                availableStock,
+                soldOut,
+                saleStatus
+        );
+    }
+
 }

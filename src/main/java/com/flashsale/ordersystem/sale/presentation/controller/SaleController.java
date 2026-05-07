@@ -1,4 +1,5 @@
 package com.flashsale.ordersystem.sale.presentation.controller;
+import com.flashsale.ordersystem.sale.presentation.dto.ProductAvailabilityResponse;
 import com.flashsale.ordersystem.sale.presentation.mapper.SaleItemMapper;
 import com.flashsale.ordersystem.sale.presentation.mapper.SaleMapper;
 import com.flashsale.ordersystem.sale.presentation.dto.SaleItemResponse;
@@ -30,5 +31,10 @@ public class SaleController {
                 .stream()
                 .map(SaleItemMapper::toResponse)
                 .toList();
+    }
+
+    @GetMapping("/{saleId}/product/{productId}/availability")
+    public ProductAvailabilityResponse getProductAvailability(@PathVariable Long saleId,@PathVariable Long productId){
+      return   saleService.getProductAvailability(saleId,productId);
     }
 }
