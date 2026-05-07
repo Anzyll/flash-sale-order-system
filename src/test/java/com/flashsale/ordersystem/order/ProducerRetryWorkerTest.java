@@ -132,7 +132,7 @@ class ProducerRetryWorkerTest {
                 .thenReturn(future);
 
         when(future.get())
-                .thenThrow(new RuntimeException("Kafka failure"));
+                .thenThrow(new InfrastructureException(ErrorCode.KAFKA_UNAVAILABLE));
 
         producerRetryWorker.processRetryQueue();
 
