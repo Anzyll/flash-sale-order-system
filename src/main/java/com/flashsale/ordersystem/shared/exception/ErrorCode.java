@@ -22,6 +22,7 @@ public enum ErrorCode {
     REDIS_EXECUTION_FAILED(500, "REDIS_EXECUTION_FAILED", "Redis execution failed"),
     REDIS_SERIALIZATION_ERROR(500, "REDIS_SERIALIZATION_ERROR", "Failed to serialize data for Redis"),
     REDIS_DESERIALIZATION_ERROR(500, "REDIS_DESERIALIZATION_ERROR", "Failed to deserialize data from Redis"),
+    ORDER_NOT_FOUND(404,"ORDER_NOT_FOUND","order not found"),
     KAFKA_UNAVAILABLE(500, "KAFKA_UNAVAILABLE", "Kafka broker unavailable");
 
     private final int status;

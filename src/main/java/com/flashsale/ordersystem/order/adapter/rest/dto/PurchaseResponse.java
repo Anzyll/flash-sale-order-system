@@ -1,9 +1,10 @@
 package com.flashsale.ordersystem.order.adapter.rest.dto;
 
-import java.math.BigDecimal;
+import com.flashsale.ordersystem.order.domain.enums.OrderStatus;
 
 public record PurchaseResponse(
-        Long orderId,
+        String eventId,
         String status,
-        BigDecimal totalAmount
-) {}
+        String message
+) {
+}

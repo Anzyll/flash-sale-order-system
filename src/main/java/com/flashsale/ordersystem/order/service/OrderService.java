@@ -1,5 +1,7 @@
 package com.flashsale.ordersystem.order.service;
 
+import com.flashsale.ordersystem.order.adapter.rest.dto.OrderStatusResponse;
+import com.flashsale.ordersystem.order.adapter.rest.dto.PurchaseResponse;
 import com.flashsale.ordersystem.order.port.OrderProcessingUseCase;
 import com.flashsale.ordersystem.shared.exception.BusinessException;
 import com.flashsale.ordersystem.shared.exception.ErrorCode;
@@ -39,7 +41,7 @@ public class OrderService implements OrderProcessingUseCase {
     private final ProcessedEventRepository processedEventRepository;
     private final SaleService saleService;
     private static final int DEFAULT_QUANTITY = 1;
-    public void purchase(String userId,Long saleId, Long productId) {
+    public PurchaseResponse purchase(String userId, Long saleId, Long productId) {
         log.info("Purchased started. userId={}, saleId={}, productId={}",
                 userId, saleId, productId);
             validatePurchaseRequest(userId,saleId,productId);
@@ -80,6 +82,11 @@ public class OrderService implements OrderProcessingUseCase {
                     productId,
                     Instant.now());
             orderEventPublisher.publish(event);
+            return  new PurchaseResponse(
+                    event.getEventId(),
+                    "PENDING",
+                    "order is being processed"
+            );
     }
 
     private void validatePurchaseRequest(String userId, Long saleId, Long productId) {
@@ -188,5 +195,17 @@ public class OrderService implements OrderProcessingUseCase {
         stockReservationPort.recoverStock(saleId, productId, remaining, ttl);
         log.info("Stock recovered. saleId={}, productId={}, remaining={}, ttl={}",
                 saleId, productId, remaining, ttl);
+    }
+
+    public OrderStatusResponse getOrderStatus(String userId,Long orderId) {
+        Order order = orderRepository.findByIdAndUser_KeycloakId(orderId,userId)
+                .orElseThrow(()->new BusinessException(ErrorCode.ORDER_NOT_FOUND));
+        return new OrderStatusResponse(
+                orderId,
+                order.getStatus().name(),
+                order.getSale().getId(),
+                order.getProduct().getId(),
+                order.getCreatedAt()
+        );
     }
 }
