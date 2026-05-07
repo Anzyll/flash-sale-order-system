@@ -16,6 +16,6 @@ public class RetryEvent {
     private int retryCount;
 
     public int incrementAndGet() {
-       return this.retryCount++;
+       return ++this.retryCount;
     }
 }
