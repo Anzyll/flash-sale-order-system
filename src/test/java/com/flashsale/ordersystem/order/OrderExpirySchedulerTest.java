@@ -1,4 +1,4 @@
-package com.flashsale.ordersystem.sale;
+package com.flashsale.ordersystem.order;
 
 import com.flashsale.ordersystem.order.adapter.persistence.OrderRepository;
 import com.flashsale.ordersystem.order.domain.enums.OrderStatus;
