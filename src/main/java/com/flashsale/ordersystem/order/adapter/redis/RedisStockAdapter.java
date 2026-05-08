@@ -34,25 +34,45 @@ public class RedisStockAdapter implements StockReservationPort, SaleStockPort {
                 List.of(stock_key, purchase_reserved_key),
                 String.valueOf(quantity)
         );
+      return handlePurchaseResult(result,saleId,productId);
+    }
+
+    private boolean handlePurchaseResult(Long result,
+                                         Long saleId,
+                                         Long productId) {
+
         if (result == null) {
-            log.error("Redis increment failed during revert. saleId={}, productId={}",
-                    saleId, productId);
+            log.error(
+                    "Redis execution failed during purchase. saleId={}, productId={}",
+                    saleId,
+                    productId
+            );
+
             throw new InfrastructureException(ErrorCode.REDIS_EXECUTION_FAILED);
         }
+
         if (result == OUT_OF_STOCK) {
             return false;
         }
+
         if (result == NOT_INITIALIZED) {
-            log.error("Stock recovery failed. saleId={}, productId={}",
-                    saleId, productId);
+            log.error(
+                    "Stock not initialized. saleId={}, productId={}",
+                    saleId,
+                    productId
+            );
+
             throw new InfrastructureException(ErrorCode.STOCK_NOT_INITIALIZED);
         }
+
         if (result == INVALID_QTY) {
             throw new BusinessException(ErrorCode.INVALID_QUANTITY);
         }
+
         if (result == ALREADY_PURCHASED) {
             throw new BusinessException(ErrorCode.ALREADY_PURCHASED);
         }
+
         return true;
     }
 
