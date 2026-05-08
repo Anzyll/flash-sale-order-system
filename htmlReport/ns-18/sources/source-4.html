@@ -1,0 +1,214 @@
+
+
+
+<!DOCTYPE html>
+<html id="htmlId">
+<head>
+  <meta http-equiv="Content-Type" content="text/html;charset=UTF-8"> 
+  <title>Coverage Report > GlobalExceptionHandler</title>
+  <style type="text/css">
+    @import "../../css/coverage.css";
+    @import "../../css/idea.min.css";
+  </style>
+  <script type="text/javascript" src="../../js/highlight.min.js"></script>
+  <script type="text/javascript" src="../../js/highlightjs-line-numbers.min.js"></script>
+</head>
+
+<body>
+<div class="content">
+<div class="breadCrumbs">
+Current scope:     <a href="../../index.html">all classes</a>
+    <span class="separator">|</span>
+    <a href="../index.html">com.flashsale.ordersystem.shared.exception</a>
+</div>
+
+<h1>Coverage Summary for Class: GlobalExceptionHandler (com.flashsale.ordersystem.shared.exception)</h1>
+
+<table class="coverageStats">
+<tr>
+  <th class="name">Class</th>
+<th class="coverageStat 
+">
+  Class, %
+</th>
+<th class="coverageStat 
+">
+  Method, %
+</th>
+<th class="coverageStat 
+">
+  Line, %
+</th>
+</tr>
+<tr>
+  <td class="name">GlobalExceptionHandler</td>
+<td class="coverageStat">
+  <span class="percent">
+    100%
+  </span>
+  <span class="absValue">
+    (1/1)
+  </span>
+</td>
+<td class="coverageStat">
+  <span class="percent">
+    66.7%
+  </span>
+  <span class="absValue">
+    (4/6)
+  </span>
+</td>
+<td class="coverageStat">
+  <span class="percent">
+    57.8%
+  </span>
+  <span class="absValue">
+    (26/45)
+  </span>
+</td>
+</tr>
+
+</table>
+
+<br/>
+<br/>
+
+
+<pre>
+<code class="sourceCode" id="sourceCode">&nbsp;package com.flashsale.ordersystem.shared.exception;
+&nbsp;
+&nbsp;import jakarta.servlet.http.HttpServletRequest;
+&nbsp;import lombok.extern.slf4j.Slf4j;
+&nbsp;import org.slf4j.MDC;
+&nbsp;import org.springframework.http.ResponseEntity;
+&nbsp;import org.springframework.web.bind.MethodArgumentNotValidException;
+&nbsp;import org.springframework.web.bind.annotation.ExceptionHandler;
+&nbsp;import org.springframework.web.bind.annotation.RestControllerAdvice;
+&nbsp;
+&nbsp;import java.time.Instant;
+&nbsp;
+&nbsp;@RestControllerAdvice
+<b class="fc">&nbsp;@Slf4j</b>
+<b class="fc">&nbsp;public class GlobalExceptionHandler {</b>
+&nbsp;    @ExceptionHandler(BusinessException.class)
+&nbsp;    public ResponseEntity&lt;ErrorResponse&gt; handleCustomException(
+&nbsp;            BusinessException ex,
+&nbsp;            HttpServletRequest request) {
+&nbsp;
+<b class="fc">&nbsp;        ErrorCode errorCode = ex.getErrorCode();</b>
+&nbsp;
+<b class="fc">&nbsp;        log.error(&quot;Business exception. errorCode={}, path={}, correlationId={}&quot;,</b>
+<b class="fc">&nbsp;                errorCode.name(),</b>
+<b class="fc">&nbsp;                request.getRequestURI(),</b>
+<b class="fc">&nbsp;                MDC.get(&quot;correlationId&quot;),</b>
+&nbsp;                ex);
+&nbsp;
+<b class="fc">&nbsp;        return ResponseEntity</b>
+<b class="fc">&nbsp;                .status(errorCode.getStatus())</b>
+<b class="fc">&nbsp;                .body(new ErrorResponse(</b>
+<b class="fc">&nbsp;                        Instant.now(),</b>
+<b class="fc">&nbsp;                        errorCode.getStatus(),</b>
+<b class="fc">&nbsp;                        errorCode.name(),</b>
+<b class="fc">&nbsp;                        errorCode.getMessage(),</b>
+<b class="fc">&nbsp;                        request.getRequestURI(),</b>
+<b class="fc">&nbsp;                        MDC.get(&quot;correlationId&quot;)</b>
+&nbsp;                ));
+&nbsp;    }
+&nbsp;
+&nbsp;    @ExceptionHandler(InfrastructureException.class)
+&nbsp;    public ResponseEntity&lt;ErrorResponse&gt; handleInfraException(
+&nbsp;            InfrastructureException ex,
+&nbsp;            HttpServletRequest request) {
+&nbsp;
+<b class="nc">&nbsp;        ErrorCode errorCode = ex.getErrorCode();</b>
+&nbsp;
+<b class="nc">&nbsp;        log.error(&quot;Infra failure. errorCode={}, path={}, correlationId={}&quot;,</b>
+<b class="nc">&nbsp;                errorCode.name(),</b>
+<b class="nc">&nbsp;                request.getRequestURI(),</b>
+<b class="nc">&nbsp;                MDC.get(&quot;correlationId&quot;),</b>
+&nbsp;                ex);
+&nbsp;
+<b class="nc">&nbsp;        return ResponseEntity</b>
+<b class="nc">&nbsp;                .status(errorCode.getStatus())</b>
+<b class="nc">&nbsp;                .body(new ErrorResponse(</b>
+<b class="nc">&nbsp;                        Instant.now(),</b>
+<b class="nc">&nbsp;                        errorCode.getStatus(),</b>
+<b class="nc">&nbsp;                        errorCode.name(),</b>
+<b class="nc">&nbsp;                        errorCode.getMessage(),</b>
+<b class="nc">&nbsp;                        request.getRequestURI(),</b>
+<b class="nc">&nbsp;                        MDC.get(&quot;correlationId&quot;)</b>
+&nbsp;                ));
+&nbsp;    }
+&nbsp;
+&nbsp;
+&nbsp;    @ExceptionHandler(MethodArgumentNotValidException.class)
+&nbsp;    public ResponseEntity&lt;ErrorResponse&gt; handleValidationException(
+&nbsp;            org.springframework.web.bind.MethodArgumentNotValidException ex,
+&nbsp;            HttpServletRequest request) {
+&nbsp;
+<b class="fc">&nbsp;        String errorMessage = ex.getBindingResult()</b>
+<b class="fc">&nbsp;                .getFieldErrors()</b>
+<b class="fc">&nbsp;                .stream()</b>
+<b class="fc">&nbsp;                .map(error -&gt; error.getField() + &quot;: &quot; + error.getDefaultMessage())</b>
+<b class="fc">&nbsp;                .findFirst()</b>
+<b class="fc">&nbsp;                .orElse(&quot;Invalid request&quot;);</b>
+&nbsp;
+<b class="fc">&nbsp;        return ResponseEntity.badRequest().body(</b>
+&nbsp;                new ErrorResponse(
+<b class="fc">&nbsp;                        Instant.now(),</b>
+&nbsp;                        400,
+&nbsp;                        &quot;VALIDATION_ERROR&quot;,
+&nbsp;                        errorMessage,
+<b class="fc">&nbsp;                        request.getRequestURI(),</b>
+<b class="fc">&nbsp;                        MDC.get(&quot;correlationId&quot;)</b>
+&nbsp;                )
+&nbsp;        );
+&nbsp;    }
+&nbsp;
+&nbsp;    @ExceptionHandler(Exception.class)
+&nbsp;    public ResponseEntity&lt;ErrorResponse&gt; handleGeneric(
+&nbsp;            Exception ex,
+&nbsp;            HttpServletRequest request) {
+&nbsp;
+<b class="nc">&nbsp;        log.error(&quot;Unhandled exception&quot;, ex);</b>
+&nbsp;
+<b class="nc">&nbsp;        return ResponseEntity.status(500).body(</b>
+&nbsp;                new ErrorResponse(
+<b class="nc">&nbsp;                        Instant.now(),</b>
+&nbsp;                        500,
+&nbsp;                        &quot;INTERNAL_SERVER_ERROR&quot;,
+&nbsp;                        &quot;Something went wrong&quot;,
+<b class="nc">&nbsp;                        request.getRequestURI(),</b>
+<b class="nc">&nbsp;                        MDC.get(&quot;correlationId&quot;)</b>
+&nbsp;                )
+&nbsp;        );
+&nbsp;    }
+&nbsp;
+&nbsp;}
+</code>
+</pre>
+</div>
+
+<script type="text/javascript">
+(function() {
+    var msie = false, msie9 = false;
+    /*@cc_on
+      msie = true;
+      @if (@_jscript_version >= 9)
+        msie9 = true;
+      @end
+    @*/
+
+    if (!msie || msie && msie9) {
+      hljs.highlightAll()
+      hljs.initLineNumbersOnLoad();
+    }
+})();
+</script>
+
+<div class="footer">
+    
+    <div style="float:right;">generated on 2026-05-08 12:49</div>
+</div>
+</body>
+</html>

@@ -1,0 +1,144 @@
+
+
+
+<!DOCTYPE html>
+<html id="htmlId">
+<head>
+  <meta http-equiv="Content-Type" content="text/html;charset=UTF-8"> 
+  <title>Coverage Report > SaleController</title>
+  <style type="text/css">
+    @import "../../css/coverage.css";
+    @import "../../css/idea.min.css";
+  </style>
+  <script type="text/javascript" src="../../js/highlight.min.js"></script>
+  <script type="text/javascript" src="../../js/highlightjs-line-numbers.min.js"></script>
+</head>
+
+<body>
+<div class="content">
+<div class="breadCrumbs">
+Current scope:     <a href="../../index.html">all classes</a>
+    <span class="separator">|</span>
+    <a href="../index.html">com.flashsale.ordersystem.sale.presentation.controller</a>
+</div>
+
+<h1>Coverage Summary for Class: SaleController (com.flashsale.ordersystem.sale.presentation.controller)</h1>
+
+<table class="coverageStats">
+<tr>
+  <th class="name">Class</th>
+<th class="coverageStat 
+">
+  Class, %
+</th>
+<th class="coverageStat 
+">
+  Method, %
+</th>
+<th class="coverageStat 
+">
+  Line, %
+</th>
+</tr>
+<tr>
+  <td class="name">SaleController</td>
+<td class="coverageStat">
+  <span class="percent">
+    0%
+  </span>
+  <span class="absValue">
+    (0/1)
+  </span>
+</td>
+<td class="coverageStat">
+  <span class="percent">
+    0%
+  </span>
+  <span class="absValue">
+    (0/3)
+  </span>
+</td>
+<td class="coverageStat">
+  <span class="percent">
+    0%
+  </span>
+  <span class="absValue">
+    (0/9)
+  </span>
+</td>
+</tr>
+
+</table>
+
+<br/>
+<br/>
+
+
+<pre>
+<code class="sourceCode" id="sourceCode">&nbsp;package com.flashsale.ordersystem.sale.presentation.controller;
+&nbsp;import com.flashsale.ordersystem.sale.presentation.dto.ProductAvailabilityResponse;
+&nbsp;import com.flashsale.ordersystem.sale.presentation.mapper.SaleItemMapper;
+&nbsp;import com.flashsale.ordersystem.sale.presentation.mapper.SaleMapper;
+&nbsp;import com.flashsale.ordersystem.sale.presentation.dto.SaleItemResponse;
+&nbsp;import com.flashsale.ordersystem.sale.presentation.dto.SaleResponse;
+&nbsp;import com.flashsale.ordersystem.sale.service.SaleService;
+&nbsp;import lombok.RequiredArgsConstructor;
+&nbsp;import org.springframework.http.HttpStatus;
+&nbsp;import org.springframework.security.access.prepost.PreAuthorize;
+&nbsp;import org.springframework.web.bind.annotation.*;
+&nbsp;import java.util.List;
+&nbsp;@RestController
+&nbsp;@RequestMapping(&quot;/api/v1/sales&quot;)
+&nbsp;@PreAuthorize(&quot;hasAnyRole(&#39;USER&#39;, &#39;ADMIN&#39;)&quot;)
+&nbsp;@RequiredArgsConstructor
+&nbsp;public class SaleController {
+&nbsp;    private final SaleService saleService;
+&nbsp;    @GetMapping
+&nbsp;    @ResponseStatus(HttpStatus.OK)
+&nbsp;    public List&lt;SaleResponse&gt; getSales(){
+<b class="nc">&nbsp;        return saleService.getSales()</b>
+<b class="nc">&nbsp;                .stream()</b>
+<b class="nc">&nbsp;                .map(SaleMapper::toResponse)</b>
+<b class="nc">&nbsp;                .toList();</b>
+&nbsp;    }
+&nbsp;    @GetMapping(&quot;/{saleId}/items&quot;)
+&nbsp;    @ResponseStatus(HttpStatus.OK)
+&nbsp;    public List&lt;SaleItemResponse&gt; getSaleItems(@PathVariable Long saleId){
+<b class="nc">&nbsp;        return saleService.getSaleItems(saleId)</b>
+<b class="nc">&nbsp;                .stream()</b>
+<b class="nc">&nbsp;                .map(SaleItemMapper::toResponse)</b>
+<b class="nc">&nbsp;                .toList();</b>
+&nbsp;    }
+&nbsp;
+&nbsp;    @GetMapping(&quot;/{saleId}/product/{productId}/availability&quot;)
+&nbsp;    public ProductAvailabilityResponse getProductAvailability(@PathVariable Long saleId,@PathVariable Long productId){
+<b class="nc">&nbsp;      return   saleService.getProductAvailability(saleId,productId);</b>
+&nbsp;    }
+&nbsp;}
+</code>
+</pre>
+</div>
+
+<script type="text/javascript">
+(function() {
+    var msie = false, msie9 = false;
+    /*@cc_on
+      msie = true;
+      @if (@_jscript_version >= 9)
+        msie9 = true;
+      @end
+    @*/
+
+    if (!msie || msie && msie9) {
+      hljs.highlightAll()
+      hljs.initLineNumbersOnLoad();
+    }
+})();
+</script>
+
+<div class="footer">
+    
+    <div style="float:right;">generated on 2026-05-08 12:49</div>
+</div>
+</body>
+</html>

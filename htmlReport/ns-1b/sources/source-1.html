@@ -1,0 +1,197 @@
+
+
+
+<!DOCTYPE html>
+<html id="htmlId">
+<head>
+  <meta http-equiv="Content-Type" content="text/html;charset=UTF-8"> 
+  <title>Coverage Report > AuthService</title>
+  <style type="text/css">
+    @import "../../css/coverage.css";
+    @import "../../css/idea.min.css";
+  </style>
+  <script type="text/javascript" src="../../js/highlight.min.js"></script>
+  <script type="text/javascript" src="../../js/highlightjs-line-numbers.min.js"></script>
+</head>
+
+<body>
+<div class="content">
+<div class="breadCrumbs">
+Current scope:     <a href="../../index.html">all classes</a>
+    <span class="separator">|</span>
+    <a href="../index.html">com.flashsale.ordersystem.user.service</a>
+</div>
+
+<h1>Coverage Summary for Class: AuthService (com.flashsale.ordersystem.user.service)</h1>
+
+<table class="coverageStats">
+<tr>
+  <th class="name">Class</th>
+<th class="coverageStat 
+">
+  Class, %
+</th>
+<th class="coverageStat 
+">
+  Method, %
+</th>
+<th class="coverageStat 
+">
+  Branch, %
+</th>
+<th class="coverageStat 
+">
+  Line, %
+</th>
+</tr>
+<tr>
+  <td class="name">AuthService</td>
+<td class="coverageStat">
+  <span class="percent">
+    0%
+  </span>
+  <span class="absValue">
+    (0/1)
+  </span>
+</td>
+<td class="coverageStat">
+  <span class="percent">
+    0%
+  </span>
+  <span class="absValue">
+    (0/2)
+  </span>
+</td>
+<td class="coverageStat">
+  <span class="percent">
+    0%
+  </span>
+  <span class="absValue">
+    (0/6)
+  </span>
+</td>
+<td class="coverageStat">
+  <span class="percent">
+    0%
+  </span>
+  <span class="absValue">
+    (0/38)
+  </span>
+</td>
+</tr>
+
+</table>
+
+<br/>
+<br/>
+
+
+<pre>
+<code class="sourceCode" id="sourceCode">&nbsp;package com.flashsale.ordersystem.user.service;
+&nbsp;
+&nbsp;import com.flashsale.ordersystem.user.presentation.dto.RegisterRequest;
+&nbsp;import com.flashsale.ordersystem.shared.exception.BusinessException;
+&nbsp;import com.flashsale.ordersystem.shared.exception.ErrorCode;
+&nbsp;import jakarta.ws.rs.core.Response;
+&nbsp;import lombok.RequiredArgsConstructor;
+&nbsp;import lombok.extern.slf4j.Slf4j;
+&nbsp;import org.keycloak.admin.client.Keycloak;
+&nbsp;import org.keycloak.representations.idm.CredentialRepresentation;
+&nbsp;import org.keycloak.representations.idm.RoleRepresentation;
+&nbsp;import org.keycloak.representations.idm.UserRepresentation;
+&nbsp;import org.springframework.beans.factory.annotation.Value;
+&nbsp;import org.springframework.stereotype.Service;
+&nbsp;import java.util.List;
+&nbsp;
+&nbsp;@Service
+&nbsp;@RequiredArgsConstructor
+<b class="nc">&nbsp;@Slf4j</b>
+&nbsp;public class AuthService {
+&nbsp;    private final Keycloak keycloak;
+&nbsp;    private final UserService userService;
+&nbsp;    @Value(&quot;${keycloak.app-realm}&quot;)
+&nbsp;    private String realm;
+&nbsp;    public void register(RegisterRequest request) {
+<b class="nc">&nbsp;        log.info(&quot;User registration started. email={}&quot;, request.email());</b>
+<b class="nc">&nbsp;        if (userService.existsByEmail(request.email())) {</b>
+<b class="nc">&nbsp;            log.warn(&quot;Registration failed. Email already exists. email={}&quot;, request.email());</b>
+<b class="nc">&nbsp;            throw new BusinessException(ErrorCode.EMAIL_ALREADY_EXISTS);</b>
+&nbsp;        }
+&nbsp;
+<b class="nc">&nbsp;        UserRepresentation user = new UserRepresentation();</b>
+<b class="nc">&nbsp;        user.setEmail(request.email());</b>
+<b class="nc">&nbsp;        user.setUsername(request.username());</b>
+<b class="nc">&nbsp;        user.setEnabled(true);</b>
+<b class="nc">&nbsp;        user.setEmailVerified(true);</b>
+<b class="nc">&nbsp;        Response response = keycloak.realm(realm).users().create(user);</b>
+&nbsp;
+<b class="nc">&nbsp;        if (response.getStatus() == 409) {</b>
+<b class="nc">&nbsp;            log.warn(&quot;Registration failed. Email already exists. email={}&quot;, request.email());</b>
+<b class="nc">&nbsp;            throw new BusinessException(ErrorCode.EMAIL_ALREADY_EXISTS);</b>
+&nbsp;        }
+&nbsp;
+<b class="nc">&nbsp;        if (response.getStatus() != 201) {</b>
+<b class="nc">&nbsp;            log.error(&quot;Keycloak user creation failed. email={}, status={}&quot;,</b>
+<b class="nc">&nbsp;                    request.email(), response.getStatus());</b>
+<b class="nc">&nbsp;            throw new RuntimeException(&quot;Keycloak user creation failed&quot;);</b>
+&nbsp;        }
+&nbsp;
+<b class="nc">&nbsp;        String location = response.getLocation().getPath();</b>
+<b class="nc">&nbsp;        String keycloakId = location.substring(location.lastIndexOf(&quot;/&quot;) + 1);</b>
+&nbsp;
+&nbsp;        try {
+<b class="nc">&nbsp;            CredentialRepresentation credential = new CredentialRepresentation();</b>
+<b class="nc">&nbsp;            credential.setType(CredentialRepresentation.PASSWORD);</b>
+<b class="nc">&nbsp;            credential.setValue(request.password());</b>
+<b class="nc">&nbsp;            credential.setTemporary(false);</b>
+&nbsp;
+<b class="nc">&nbsp;            keycloak.realm(realm)</b>
+<b class="nc">&nbsp;                    .users()</b>
+<b class="nc">&nbsp;                    .get(keycloakId)</b>
+<b class="nc">&nbsp;                    .resetPassword(credential);</b>
+&nbsp;
+<b class="nc">&nbsp;            var realmResource = keycloak.realm(realm);</b>
+<b class="nc">&nbsp;            var userResource = realmResource.users().get(keycloakId);</b>
+&nbsp;
+<b class="nc">&nbsp;            RoleRepresentation userRole = realmResource.roles().get(&quot;USER&quot;).toRepresentation();</b>
+<b class="nc">&nbsp;            userResource.roles().realmLevel().add(List.of(userRole));</b>
+&nbsp;
+<b class="nc">&nbsp;            userService.createUser(keycloakId,request.email());</b>
+<b class="nc">&nbsp;            log.info(&quot;User registration successful. userId={}, email={}&quot;,</b>
+<b class="nc">&nbsp;                    keycloakId, request.email());</b>
+&nbsp;
+&nbsp;        } catch (Exception e) {
+<b class="nc">&nbsp;            keycloak.realm(realm).users().delete(keycloakId);</b>
+<b class="nc">&nbsp;            log.error(&quot;Registration failed. Rolling back Keycloak user. userId={}, email={}&quot;,</b>
+<b class="nc">&nbsp;                    keycloakId, request.email(), e);</b>
+&nbsp;            throw e;
+&nbsp;        }
+&nbsp;    }
+&nbsp;}
+</code>
+</pre>
+</div>
+
+<script type="text/javascript">
+(function() {
+    var msie = false, msie9 = false;
+    /*@cc_on
+      msie = true;
+      @if (@_jscript_version >= 9)
+        msie9 = true;
+      @end
+    @*/
+
+    if (!msie || msie && msie9) {
+      hljs.highlightAll()
+      hljs.initLineNumbersOnLoad();
+    }
+})();
+</script>
+
+<div class="footer">
+    
+    <div style="float:right;">generated on 2026-05-08 12:49</div>
+</div>
+</body>
+</html>

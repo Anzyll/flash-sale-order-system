@@ -1,0 +1,320 @@
+
+
+
+<!DOCTYPE html>
+<html id="htmlId">
+<head>
+  <meta http-equiv="Content-Type" content="text/html;charset=UTF-8"> 
+  <title>Coverage Report > RedisStockAdapter</title>
+  <style type="text/css">
+    @import "../../css/coverage.css";
+    @import "../../css/idea.min.css";
+  </style>
+  <script type="text/javascript" src="../../js/highlight.min.js"></script>
+  <script type="text/javascript" src="../../js/highlightjs-line-numbers.min.js"></script>
+</head>
+
+<body>
+<div class="content">
+<div class="breadCrumbs">
+Current scope:     <a href="../../index.html">all classes</a>
+    <span class="separator">|</span>
+    <a href="../index.html">com.flashsale.ordersystem.order.adapter.redis</a>
+</div>
+
+<h1>Coverage Summary for Class: RedisStockAdapter (com.flashsale.ordersystem.order.adapter.redis)</h1>
+
+<table class="coverageStats">
+<tr>
+  <th class="name">Class</th>
+<th class="coverageStat 
+">
+  Class, %
+</th>
+<th class="coverageStat 
+">
+  Method, %
+</th>
+<th class="coverageStat 
+">
+  Branch, %
+</th>
+<th class="coverageStat 
+">
+  Line, %
+</th>
+</tr>
+<tr>
+  <td class="name">RedisStockAdapter</td>
+<td class="coverageStat">
+  <span class="percent">
+    0%
+  </span>
+  <span class="absValue">
+    (0/1)
+  </span>
+</td>
+<td class="coverageStat">
+  <span class="percent">
+    0%
+  </span>
+  <span class="absValue">
+    (0/12)
+  </span>
+</td>
+<td class="coverageStat">
+  <span class="percent">
+    0%
+  </span>
+  <span class="absValue">
+    (0/30)
+  </span>
+</td>
+<td class="coverageStat">
+  <span class="percent">
+    0%
+  </span>
+  <span class="absValue">
+    (0/85)
+  </span>
+</td>
+</tr>
+
+</table>
+
+<br/>
+<br/>
+
+
+<pre>
+<code class="sourceCode" id="sourceCode">&nbsp;package com.flashsale.ordersystem.order.adapter.redis;
+&nbsp;
+&nbsp;import com.flashsale.ordersystem.shared.exception.BusinessException;
+&nbsp;import com.flashsale.ordersystem.shared.exception.ErrorCode;
+&nbsp;import com.flashsale.ordersystem.shared.exception.InfrastructureException;
+&nbsp;import com.flashsale.ordersystem.shared.port.StockReservationPort;
+&nbsp;import com.flashsale.ordersystem.shared.port.SaleStockPort;
+&nbsp;import lombok.RequiredArgsConstructor;
+&nbsp;import lombok.extern.slf4j.Slf4j;
+&nbsp;import org.springframework.data.redis.core.StringRedisTemplate;
+&nbsp;import org.springframework.data.redis.core.script.DefaultRedisScript;
+&nbsp;import org.springframework.stereotype.Service;
+&nbsp;import java.time.Duration;
+&nbsp;import java.util.List;
+&nbsp;
+&nbsp;@Service
+&nbsp;@RequiredArgsConstructor
+<b class="nc">&nbsp;@Slf4j</b>
+&nbsp;public class RedisStockAdapter implements StockReservationPort, SaleStockPort {
+&nbsp;    private final StringRedisTemplate redisTemplate;
+&nbsp;    private  final DefaultRedisScript&lt;Long&gt; purchaseScript;
+&nbsp;    private static final long OUT_OF_STOCK = -1;
+&nbsp;    private static final long NOT_INITIALIZED = -2;
+&nbsp;    private static final long INVALID_QTY = -3;
+&nbsp;    private static final long ALREADY_PURCHASED = -4;
+&nbsp;
+&nbsp;
+&nbsp;    @Override
+&nbsp;    public boolean tryPurchase(String  userId, Long saleId, Long productId, int quantity) {
+<b class="nc">&nbsp;        String stock_key = &quot;stock:%d:%d&quot;.formatted(saleId, productId);</b>
+<b class="nc">&nbsp;        String purchase_reserved_key = &quot;purchase_reserved:%s:%d:%d&quot;.formatted(userId, saleId, productId);</b>
+<b class="nc">&nbsp;        Long result = redisTemplate.execute(</b>
+&nbsp;                purchaseScript,
+<b class="nc">&nbsp;                List.of(stock_key, purchase_reserved_key),</b>
+<b class="nc">&nbsp;                String.valueOf(quantity)</b>
+&nbsp;        );
+<b class="nc">&nbsp;        if (result == null) {</b>
+<b class="nc">&nbsp;            log.error(&quot;Redis increment failed during revert. saleId={}, productId={}&quot;,</b>
+&nbsp;                    saleId, productId);
+<b class="nc">&nbsp;            throw new InfrastructureException(ErrorCode.REDIS_EXECUTION_FAILED);</b>
+&nbsp;        }
+<b class="nc">&nbsp;        if (result == OUT_OF_STOCK) {</b>
+<b class="nc">&nbsp;            return false;</b>
+&nbsp;        }
+<b class="nc">&nbsp;        if (result == NOT_INITIALIZED) {</b>
+<b class="nc">&nbsp;            log.error(&quot;Stock recovery failed. saleId={}, productId={}&quot;,</b>
+&nbsp;                    saleId, productId);
+<b class="nc">&nbsp;            throw new InfrastructureException(ErrorCode.STOCK_NOT_INITIALIZED);</b>
+&nbsp;        }
+<b class="nc">&nbsp;        if (result == INVALID_QTY) {</b>
+<b class="nc">&nbsp;            throw new BusinessException(ErrorCode.INVALID_QUANTITY);</b>
+&nbsp;        }
+<b class="nc">&nbsp;        if (result == ALREADY_PURCHASED) {</b>
+<b class="nc">&nbsp;            throw new BusinessException(ErrorCode.ALREADY_PURCHASED);</b>
+&nbsp;        }
+<b class="nc">&nbsp;        return true;</b>
+&nbsp;    }
+&nbsp;
+&nbsp;    @Override
+&nbsp;    public void revertPurchase(String userId,Long saleId, Long productId, int quantity) {
+<b class="nc">&nbsp;        log.warn(&quot;Reverting stock. userId={}, saleId={}, productId={}, quantity={}&quot;,</b>
+<b class="nc">&nbsp;                userId, saleId, productId, quantity);</b>
+<b class="nc">&nbsp;        String stockKey = &quot;stock:%d:%d&quot;.formatted(saleId, productId);</b>
+<b class="nc">&nbsp;        String purchaseKey = &quot;purchase_reserved:%s:%d:%d&quot;.formatted(userId, saleId, productId);</b>
+<b class="nc">&nbsp;        Long result = redisTemplate.opsForValue().increment(stockKey,quantity);</b>
+<b class="nc">&nbsp;        if (result==null){</b>
+<b class="nc">&nbsp;            throw new InfrastructureException(ErrorCode.REDIS_EXECUTION_FAILED);</b>
+&nbsp;        }
+<b class="nc">&nbsp;        redisTemplate.delete(purchaseKey);</b>
+&nbsp;    }
+&nbsp;
+&nbsp;    @Override
+&nbsp;    public void recoverStock(Long saleId,
+&nbsp;                             Long productId,
+&nbsp;                             int remainingStock,
+&nbsp;                             long ttlSeconds) {
+<b class="nc">&nbsp;        log.warn(&quot;Stock recovery started. saleId={}, productId={}&quot;,</b>
+&nbsp;                saleId, productId);
+<b class="nc">&nbsp;        ttlSeconds = Math.max(ttlSeconds, 60);</b>
+<b class="nc">&nbsp;        int retries = 10;</b>
+<b class="nc">&nbsp;        int waitMs = 20;</b>
+&nbsp;
+<b class="nc">&nbsp;        String lockKey = &quot;recover_lock:%d:%d&quot;.formatted(saleId, productId);</b>
+<b class="nc">&nbsp;        String stockKey = &quot;stock:%d:%d&quot;.formatted(saleId, productId);</b>
+<b class="nc">&nbsp;        Boolean isOwner = redisTemplate.opsForValue()</b>
+<b class="nc">&nbsp;                .setIfAbsent(lockKey, &quot;1&quot;, Duration.ofSeconds(10));</b>
+<b class="nc">&nbsp;        boolean owner = Boolean.TRUE.equals(isOwner);</b>
+&nbsp;
+&nbsp;        try {
+<b class="nc">&nbsp;        if (!owner) {</b>
+<b class="nc">&nbsp;            for (int i = 0; i &lt; retries; i++) {</b>
+<b class="nc">&nbsp;                String stock = redisTemplate.opsForValue().get(stockKey);</b>
+<b class="nc">&nbsp;                if (stock != null) {</b>
+&nbsp;                    return;
+&nbsp;                }
+&nbsp;
+&nbsp;                try {
+<b class="nc">&nbsp;                    Thread.sleep(waitMs);</b>
+&nbsp;                } catch (InterruptedException e) {
+<b class="nc">&nbsp;                    Thread.currentThread().interrupt();</b>
+&nbsp;                }
+&nbsp;            }
+&nbsp;
+<b class="nc">&nbsp;            throw new InfrastructureException(ErrorCode.STOCK_NOT_INITIALIZED);</b>
+&nbsp;        }
+<b class="nc">&nbsp;            log.info(&quot;Recovery lock acquired. saleId={}, productId={}&quot;,</b>
+&nbsp;                    saleId, productId);
+&nbsp;
+<b class="nc">&nbsp;        redisTemplate.opsForValue().set(</b>
+&nbsp;                stockKey,
+<b class="nc">&nbsp;                String.valueOf(remainingStock),</b>
+<b class="nc">&nbsp;                Duration.ofSeconds(ttlSeconds)</b>
+&nbsp;        );
+&nbsp;
+<b class="nc">&nbsp;        redisTemplate.opsForValue()</b>
+<b class="nc">&nbsp;                .set(&quot;sale_active:&quot; + saleId, &quot;true&quot;, Duration.ofSeconds(ttlSeconds));</b>
+&nbsp;
+<b class="nc">&nbsp;        log.info(&quot;Stock recovered. saleId={}, productId={}, remaining={}, ttl={}&quot;,</b>
+<b class="nc">&nbsp;                    saleId, productId, remainingStock, ttlSeconds);</b>
+&nbsp;        } finally {
+<b class="nc">&nbsp;            if (owner) {</b>
+<b class="nc">&nbsp;                redisTemplate.delete(lockKey);</b>
+&nbsp;            }
+&nbsp;        }
+&nbsp;        }
+&nbsp;
+&nbsp;    @Override
+&nbsp;    public void initializeSaleStock(Long saleId, Long productId, int stock, long ttlSeconds) {
+<b class="nc">&nbsp;        ttlSeconds = Math.max(ttlSeconds, 60);</b>
+<b class="nc">&nbsp;        String key = &quot;stock:&quot;+saleId+&quot;:&quot;+productId;</b>
+<b class="nc">&nbsp;        redisTemplate.opsForValue().set(</b>
+&nbsp;                key,
+<b class="nc">&nbsp;                String.valueOf(stock),</b>
+<b class="nc">&nbsp;                Duration.ofSeconds(ttlSeconds)</b>
+&nbsp;        );
+&nbsp;    }
+&nbsp;
+&nbsp;    @Override
+&nbsp;    public void activateSale(Long saleId, long ttlSeconds) {
+<b class="nc">&nbsp;        ttlSeconds = Math.max(ttlSeconds, 60);</b>
+<b class="nc">&nbsp;        redisTemplate.opsForValue().set(</b>
+&nbsp;                &quot;sale_active:&quot;+saleId,
+&nbsp;                &quot;true&quot;,
+<b class="nc">&nbsp;                Duration.ofSeconds(ttlSeconds)</b>
+&nbsp;        );
+&nbsp;    }
+&nbsp;
+&nbsp;    @Override
+&nbsp;    public void deactivateSale(Long saleId, Long productId) {
+<b class="nc">&nbsp;        String key = &quot;stock:&quot; + saleId + &quot;:&quot; + productId;</b>
+<b class="nc">&nbsp;        redisTemplate.delete(key);</b>
+&nbsp;    }
+&nbsp;
+&nbsp;    @Override
+&nbsp;    public void deactivateSale(Long saleId) {
+<b class="nc">&nbsp;        redisTemplate.delete(&quot;sale_active:&quot;+saleId);</b>
+&nbsp;    }
+&nbsp;
+&nbsp;
+&nbsp;    @Override
+&nbsp;    public boolean isSaleActive(Long saleId) {
+<b class="nc">&nbsp;        String value = redisTemplate.opsForValue().get(&quot;sale_active:&quot; + saleId);</b>
+<b class="nc">&nbsp;        return &quot;true&quot;.equals(value);</b>
+&nbsp;    }
+&nbsp;
+&nbsp;    @Override
+&nbsp;    public void confirmPurchase(String userId, Long saleId, Long productId) {
+<b class="nc">&nbsp;        String reservedKey = &quot;purchase_reserved:%s:%d:%d&quot;</b>
+<b class="nc">&nbsp;                .formatted(userId, saleId, productId);</b>
+<b class="nc">&nbsp;        String doneKey = &quot;purchase_done:%s:%d:%d&quot;</b>
+<b class="nc">&nbsp;                .formatted(userId, saleId, productId);</b>
+<b class="nc">&nbsp;        redisTemplate.delete(reservedKey);</b>
+<b class="nc">&nbsp;        redisTemplate.opsForValue().set(doneKey, &quot;1&quot;);</b>
+&nbsp;    }
+&nbsp;
+&nbsp;    @Override
+&nbsp;    public int getAvailableStock(Long saleId, Long productId) {
+<b class="nc">&nbsp;        String stockKey = &quot;stock:%d:%d&quot;.formatted(saleId,productId);</b>
+<b class="nc">&nbsp;        String stockValue = redisTemplate.opsForValue().get(stockKey);</b>
+<b class="nc">&nbsp;        if (stockValue == null) {</b>
+<b class="nc">&nbsp;            return 0;</b>
+&nbsp;        }
+<b class="nc">&nbsp;        return Integer.parseInt(stockValue);</b>
+&nbsp;    }
+&nbsp;
+&nbsp;
+&nbsp;    public void waitForStock(Long saleId, Long productId) {
+<b class="nc">&nbsp;        String stockKey = &quot;stock:%d:%d&quot;.formatted(saleId, productId);</b>
+&nbsp;
+<b class="nc">&nbsp;        log.warn(&quot;Waiting for stock initialization. saleId={}, productId={}&quot;,</b>
+&nbsp;                saleId, productId);
+<b class="nc">&nbsp;        for (int i = 0; i &lt; 10; i++) {</b>
+<b class="nc">&nbsp;            String stock = redisTemplate.opsForValue().get(stockKey);</b>
+<b class="nc">&nbsp;            if (stock != null) return;</b>
+&nbsp;
+&nbsp;            try {
+<b class="nc">&nbsp;                Thread.sleep(20);</b>
+&nbsp;            } catch (InterruptedException e) {
+<b class="nc">&nbsp;                Thread.currentThread().interrupt();</b>
+&nbsp;            }
+&nbsp;        }
+<b class="nc">&nbsp;        throw new InfrastructureException(ErrorCode.STOCK_NOT_INITIALIZED);</b>
+&nbsp;    }
+&nbsp;}
+</code>
+</pre>
+</div>
+
+<script type="text/javascript">
+(function() {
+    var msie = false, msie9 = false;
+    /*@cc_on
+      msie = true;
+      @if (@_jscript_version >= 9)
+        msie9 = true;
+      @end
+    @*/
+
+    if (!msie || msie && msie9) {
+      hljs.highlightAll()
+      hljs.initLineNumbersOnLoad();
+    }
+})();
+</script>
+
+<div class="footer">
+    
+    <div style="float:right;">generated on 2026-05-08 12:49</div>
+</div>
+</body>
+</html>
