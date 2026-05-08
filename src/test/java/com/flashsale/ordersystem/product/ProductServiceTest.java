@@ -1,4 +1,4 @@
-package product;
+package com.flashsale.ordersystem.product;
 
 import com.flashsale.ordersystem.product.domain.Product;
 import com.flashsale.ordersystem.product.presentation.dto.CreateProductRequest;

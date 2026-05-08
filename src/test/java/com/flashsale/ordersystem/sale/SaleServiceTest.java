@@ -131,8 +131,12 @@ class SaleServiceTest {
 
         Sale sale = new Sale();
         sale.setId(1L);
+        sale.setTitle("Flash Sale");
+        sale.setStartTime(Instant.now());
+        sale.setEndTime(
+                Instant.now().plusSeconds(3600)
+        );
         sale.setStatus(SaleStatus.PENDING);
-        sale.setEndTime(Instant.now().plusSeconds(3600));
 
         Product product = new Product();
         product.setId(100L);
