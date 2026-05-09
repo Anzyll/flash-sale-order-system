@@ -1,4 +1,4 @@
-package com.flashsale.ordersystem.order;
+package com.flashsale.ordersystem.order.integration;
 
 import com.flashsale.ordersystem.order.adapter.kafka.producer.OrderEventPublisherAdapter;
 import com.flashsale.ordersystem.order.domain.model.OrderPlacedEvent;

@@ -1,4 +1,4 @@
-package com.flashsale.ordersystem.order;
+package com.flashsale.ordersystem.order.unit;
 
 import com.flashsale.ordersystem.order.adapter.persistence.OrderItemRepository;
 import com.flashsale.ordersystem.order.adapter.persistence.OrderRepository;
@@ -22,7 +22,6 @@ import com.flashsale.ordersystem.shared.exception.InfrastructureException;
 import com.flashsale.ordersystem.shared.port.StockReservationPort;
 import com.flashsale.ordersystem.user.domain.User;
 import com.flashsale.ordersystem.user.service.UserService;
-import org.junit.jupiter.api.Assertions.*;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.ArgumentCaptor;

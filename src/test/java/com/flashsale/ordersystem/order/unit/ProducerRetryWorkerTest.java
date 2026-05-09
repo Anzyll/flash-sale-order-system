@@ -1,4 +1,4 @@
-package com.flashsale.ordersystem.order;
+package com.flashsale.ordersystem.order.unit;
 
 import com.flashsale.ordersystem.order.adapter.redis.RetryEvent;
 import com.flashsale.ordersystem.order.domain.model.OrderPlacedEvent;

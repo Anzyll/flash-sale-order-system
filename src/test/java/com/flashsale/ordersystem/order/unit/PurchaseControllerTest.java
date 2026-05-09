@@ -1,4 +1,4 @@
-package com.flashsale.ordersystem.order;
+package com.flashsale.ordersystem.order.unit;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.flashsale.ordersystem.order.adapter.rest.controller.PurchaseController;

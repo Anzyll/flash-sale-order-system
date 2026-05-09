@@ -1,4 +1,4 @@
-package com.flashsale.ordersystem.order;
+package com.flashsale.ordersystem.order.integration;
 
 import com.flashsale.ordersystem.order.adapter.persistence.OrderItemRepository;
 import com.flashsale.ordersystem.order.adapter.persistence.OrderRepository;
@@ -47,7 +47,6 @@ import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
 
 import java.math.BigDecimal;
-import java.time.Duration;
 import java.time.Instant;
 import java.util.UUID;
 

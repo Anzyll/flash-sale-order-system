@@ -1,4 +1,4 @@
-package com.flashsale.ordersystem.order;
+package com.flashsale.ordersystem.order.integration;
 
 import com.flashsale.ordersystem.order.adapter.redis.RedisStockAdapter;
 import static org.junit.jupiter.api.Assertions.*;
