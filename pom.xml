@@ -190,6 +190,15 @@
                     </execution>
 
                 </executions>
+                <configuration>
+                    <excludes>
+
+
+                        <exclude>**/dto/**</exclude>
+                        <exclude>**/mapper/**</exclude>
+
+                    </excludes>
+                </configuration>
             </plugin>
         </plugins>
     </build>

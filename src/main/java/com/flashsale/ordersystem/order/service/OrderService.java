@@ -23,6 +23,7 @@ import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.slf4j.MDC;
 import org.springframework.dao.DataIntegrityViolationException;
+import org.springframework.data.redis.RedisConnectionFailureException;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -48,6 +49,19 @@ public class OrderService implements OrderProcessingUseCase {
             boolean success;
             try{
                 success = stockReservationPort.tryPurchase(userId,saleId, productId, DEFAULT_QUANTITY);
+            }
+            catch (RedisConnectionFailureException ex) {
+
+                log.error(
+                        "Redis unavailable during purchase. saleId={}, productId={}",
+                        saleId,
+                        productId,
+                        ex
+                );
+
+                throw new BusinessException(
+                        ErrorCode.SERVICE_UNAVAILABLE
+                );
             }
             catch (InfrastructureException e){
                 if (e.getErrorCode()==ErrorCode.STOCK_NOT_INITIALIZED) {

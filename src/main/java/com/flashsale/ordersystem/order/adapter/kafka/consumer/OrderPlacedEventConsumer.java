@@ -24,7 +24,7 @@ public class OrderPlacedEventConsumer {
     @KafkaListener(
             topics = "order.placed",
             groupId = "order-processing-group",
-            concurrency = "3"
+            concurrency = "6"
     )
     public void consume(OrderPlacedEvent event, @Header("correlationId") String correlationId) {
         MDC.put("correlationId", correlationId);
