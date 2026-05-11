@@ -1,15 +1,6 @@
 import http from 'k6/http';
 import { check } from 'k6';
 
-/*
- SCENARIO:
- - Sale starts at exact time
- - Massive burst traffic hits immediately
- - Validate:
-    * before start -> rejected
-    * after start -> accepted
-    * no early purchases
-*/
 
 export const options = {
     scenarios: {
@@ -18,15 +9,12 @@ export const options = {
 
             executor: 'constant-arrival-rate',
 
-            // 1000 requests every second
             rate: 1000,
 
             timeUnit: '1s',
 
-            // total duration
             duration: '20s',
 
-            // k6 virtual users
             preAllocatedVUs: 500,
             maxVUs: 2000,
         },
@@ -60,14 +48,6 @@ export default function () {
         params
     );
 
-    /*
-      EXPECTED RESPONSES
-
-      202 -> accepted
-      400 -> sale not started
-      409 -> out of stock / conflict
-    */
-
     check(response, {
         'valid response status': (r) =>
             r.status === 202 ||
@@ -75,10 +55,4 @@ export default function () {
             r.status === 409,
     });
 
-    // Optional logging for debugging
-    /*
-    console.log(
-        `status=${response.status}, body=${response.body}`
-    );
-    */
 }

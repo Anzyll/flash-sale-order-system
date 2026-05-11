@@ -16,16 +16,16 @@ import org.springframework.web.bind.annotation.*;
 
 @RestController
 @RequestMapping("/api/v1/sales/{saleId}/purchase")
-//@PreAuthorize("hasRole('USER')")
+@PreAuthorize("hasRole('USER')")
 @RequiredArgsConstructor
 @Slf4j
 public class PurchaseController {
     private final OrderService orderService;
     @PostMapping
     @ResponseStatus(HttpStatus.ACCEPTED)
-    public PurchaseResponse purchase(@PathVariable Long saleId, @Valid @RequestBody PurchaseRequest request, @RequestHeader("X-USER-ID") String userId){
-//        Jwt jwt = (Jwt) SecurityContextHolder.getContext().getAuthentication().getPrincipal();
-//        String userId = jwt.getSubject();
+    public PurchaseResponse purchase(@PathVariable Long saleId, @Valid @RequestBody PurchaseRequest request){
+        Jwt jwt = (Jwt) SecurityContextHolder.getContext().getAuthentication().getPrincipal();
+        String userId = jwt.getSubject();
         log.info("Incoming purchase request. userId={}, saleId={}, productId={}",
                 userId, saleId, request.productId());
        return orderService.purchase(userId,saleId,request.productId());

@@ -2,14 +2,14 @@ import http from 'k6/http';
 import { check } from 'k6';
 
 export const options = {
-    vus: 100,
-    iterations: 100,
+    vus: 5000,
+    iterations: 5000,
 };
 
 export default function () {
 
     const payload = JSON.stringify({
-        productId: 2
+        productId: 5
     });
 
     const params = {
@@ -22,7 +22,7 @@ export default function () {
     };
 
     const response = http.post(
-        'http://localhost:8000/api/v1/sales/17/purchase',
+        'http://localhost:8000/api/v1/sales/22/purchase',
         payload,
         params
     );
