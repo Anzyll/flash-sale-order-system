@@ -4,6 +4,7 @@ import com.flashsale.ordersystem.order.adapter.redis.RetryEvent;
 import com.flashsale.ordersystem.order.port.ProducerRetryQueuePort;
 import com.flashsale.ordersystem.order.port.OrderEventPublisher;
 import com.flashsale.ordersystem.order.domain.model.OrderPlacedEvent;
+import com.flashsale.ordersystem.shared.service.MetricsService;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.apache.kafka.clients.producer.ProducerRecord;
@@ -17,6 +18,7 @@ import org.springframework.stereotype.Service;
 public class OrderEventPublisherAdapter implements OrderEventPublisher {
     private final KafkaTemplate<String,OrderPlacedEvent> kafkaTemplate;
     private final ProducerRetryQueuePort retryQueue;
+    private final MetricsService metricsService;
     @Override
     public void publish(OrderPlacedEvent event) {
         String correlationId = MDC.get("correlationId");
@@ -36,6 +38,7 @@ public class OrderEventPublisherAdapter implements OrderEventPublisher {
     }
         catch (Exception e){
             log.error("Immediate Kafka failure → retry queue. eventId={}", event.getEventId(), e);
+            metricsService.incrementKafkaPublishFailure();
             retryQueue.push(new RetryEvent(event,0));
         }
 

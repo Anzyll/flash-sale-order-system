@@ -5,12 +5,15 @@ import com.flashsale.ordersystem.shared.exception.ErrorCode;
 import com.flashsale.ordersystem.shared.exception.InfrastructureException;
 import com.flashsale.ordersystem.shared.port.StockReservationPort;
 import com.flashsale.ordersystem.shared.port.SaleStockPort;
+import com.flashsale.ordersystem.shared.service.MetricsService;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.data.jpa.repository.Meta;
 import org.springframework.data.redis.core.StringRedisTemplate;
 import org.springframework.data.redis.core.script.DefaultRedisScript;
 import org.springframework.stereotype.Service;
 import java.time.Duration;
+import java.time.Instant;
 import java.util.List;
 
 @Service
@@ -23,15 +26,17 @@ public class RedisStockAdapter implements StockReservationPort, SaleStockPort {
     private static final long NOT_INITIALIZED = -2;
     private static final long INVALID_QTY = -3;
     private static final long ALREADY_PURCHASED = -4;
+    private final MetricsService metricsService;
 
 
     @Override
     public boolean tryPurchase(String  userId, Long saleId, Long productId, int quantity) {
         String stock_key = "stock:%d:%d".formatted(saleId, productId);
         String purchase_reserved_key = "purchase_reserved:%s:%d:%d".formatted(userId, saleId, productId);
+        String purchase_done_key = "purchase_done:%s:%d:%d".formatted(userId, saleId, productId);
         Long result = redisTemplate.execute(
                 purchaseScript,
-                List.of(stock_key, purchase_reserved_key),
+                List.of(stock_key, purchase_reserved_key,purchase_done_key),
                 String.valueOf(quantity)
         );
       return handlePurchaseResult(result,saleId,productId);
@@ -83,6 +88,7 @@ public class RedisStockAdapter implements StockReservationPort, SaleStockPort {
         String stockKey = "stock:%d:%d".formatted(saleId, productId);
         String purchaseKey = "purchase_reserved:%s:%d:%d".formatted(userId, saleId, productId);
         Long result = redisTemplate.opsForValue().increment(stockKey,quantity);
+        metricsService.incrementStockRevert();
         if (result==null){
             throw new InfrastructureException(ErrorCode.REDIS_EXECUTION_FAILED);
         }
@@ -184,13 +190,14 @@ public class RedisStockAdapter implements StockReservationPort, SaleStockPort {
     }
 
     @Override
-    public void confirmPurchase(String userId, Long saleId, Long productId) {
+    public void confirmPurchase(String userId, Long saleId, Long productId,Instant endTime) {
         String reservedKey = "purchase_reserved:%s:%d:%d"
                 .formatted(userId, saleId, productId);
         String doneKey = "purchase_done:%s:%d:%d"
                 .formatted(userId, saleId, productId);
+        Duration ttl = Duration.between(Instant.now(),endTime);
         redisTemplate.delete(reservedKey);
-        redisTemplate.opsForValue().set(doneKey, "1");
+        redisTemplate.opsForValue().set(doneKey, "1",ttl);
     }
 
     @Override

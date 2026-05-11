@@ -2,6 +2,7 @@ package com.flashsale.ordersystem.order.adapter.kafka.consumer;
 
 import com.flashsale.ordersystem.order.port.OrderProcessingUseCase;
 import com.flashsale.ordersystem.order.domain.model.OrderPlacedEvent;
+import com.flashsale.ordersystem.shared.service.MetricsService;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.slf4j.MDC;
@@ -16,6 +17,7 @@ import org.springframework.stereotype.Service;
 @Slf4j
 public class OrderPlacedEventConsumer {
     private final OrderProcessingUseCase orderProcessingUseCase;
+    private final MetricsService metricsService;
     @RetryableTopic(
             attempts = "4",
             backoff = @Backoff(delay = 1000,multiplier = 2),
@@ -41,6 +43,7 @@ public class OrderPlacedEventConsumer {
                     event.getEventId(),
                     event.getProductId(),
                     e);
+            metricsService.incrementConsumerProcessingFailure();
             throw e;
         }
         finally {

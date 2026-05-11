@@ -1,8 +1,9 @@
   local stock = tonumber(redis.call('GET', KEYS[1]))
-                   local purchased = tonumber(redis.call('EXISTS', KEYS[2]))
+                   local purchase_reserved = tonumber(redis.call('EXISTS', KEYS[2]))
+                   local purchase_done = tonumber(redis.call('EXISTS', KEYS[3]))
                    local qty = tonumber(ARGV[1])
 
-                   if purchased == 1 then
+                   if purchase_reserved == 1 or purchase_done == 1 then
                       return -4
                    end
 

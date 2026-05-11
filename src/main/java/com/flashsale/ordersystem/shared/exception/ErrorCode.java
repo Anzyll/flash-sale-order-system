@@ -16,7 +16,6 @@ public enum ErrorCode {
     ALREADY_PURCHASED(409, "ALREADY_PURCHASED", "Product already purchased"),
     INVALID_QUANTITY(400, "INVALID_QUANTITY", "Invalid quantity"),
     STOCK_NOT_INITIALIZED(500, "STOCK_NOT_INITIALIZED", "Stock not initialized in Redis"),
-    DUPLICATE_REQUEST(409, "DUPLICATE_REQUEST", "Duplicate request"),
     USER_NOT_FOUND(404, "USER_NOT_FOUND", "User not found"),
     EMAIL_ALREADY_EXISTS(409, "EMAIL_ALREADY_EXISTS", "Email already exists"),
     REDIS_EXECUTION_FAILED(500, "REDIS_EXECUTION_FAILED", "Redis execution failed"),
