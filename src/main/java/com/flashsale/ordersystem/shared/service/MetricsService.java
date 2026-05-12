@@ -14,6 +14,8 @@ public class MetricsService {
     private final Counter consumerProcessingFailureCounter;
     private final Counter stockRevertCounter;
     private final Timer purchaseProcessingDuration;
+    private final Timer consumerProcessingTimer;
+    private final Counter consumerProcessingSuccessCounter;
 
     public MetricsService(MeterRegistry meterRegistry) {
         this.purchaseSuccessCounter = Counter
@@ -50,6 +52,16 @@ public class MetricsService {
                         .description("purchase processing latency")
                         .register(meterRegistry);
 
+        this.consumerProcessingTimer = Timer.builder("consumer_processing_seconds")
+                .description("Kafka consumer processing latency")
+                .register(meterRegistry);
+
+        this.consumerProcessingSuccessCounter =
+                Counter.builder("consumer_processing_success")
+                        .description("consumer processing success")
+                        .register(meterRegistry);
+
+
     }
 
 
@@ -74,6 +86,11 @@ public class MetricsService {
         consumerProcessingFailureCounter.increment();
     }
 
+    public void incrementConsumerProcessingSuccess() {
+        consumerProcessingSuccessCounter.increment();
+    }
+
+
     public void incrementStockRevert() {
         stockRevertCounter.increment();
     }
@@ -81,4 +98,9 @@ public class MetricsService {
     public Timer getPurchaseProcessingTime(){
         return purchaseProcessingDuration;
     }
+
+    public Timer getConsumerProcessingTime(){
+        return consumerProcessingTimer;
+    }
+
 }

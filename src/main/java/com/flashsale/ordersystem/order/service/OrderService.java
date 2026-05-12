@@ -131,6 +131,7 @@ public class OrderService implements OrderProcessingUseCase {
         Order order = null;
         boolean completed = false;
 
+
         try {
             User user = userService.getUserOrThrow(event.getUserId());
 

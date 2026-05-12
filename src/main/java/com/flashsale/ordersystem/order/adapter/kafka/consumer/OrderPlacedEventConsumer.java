@@ -3,6 +3,7 @@ package com.flashsale.ordersystem.order.adapter.kafka.consumer;
 import com.flashsale.ordersystem.order.port.OrderProcessingUseCase;
 import com.flashsale.ordersystem.order.domain.model.OrderPlacedEvent;
 import com.flashsale.ordersystem.shared.service.MetricsService;
+import io.micrometer.core.instrument.Timer;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.slf4j.MDC;
@@ -30,12 +31,14 @@ public class OrderPlacedEventConsumer {
     )
     public void consume(OrderPlacedEvent event, @Header("correlationId") String correlationId) {
         MDC.put("correlationId", correlationId);
+        Timer.Sample sample = Timer.start();
         try {
             log.info("Order event received. eventId={}, userId={}, productId={}",
                     event.getEventId(),
                     event.getUserId(),
                     event.getProductId());
             orderProcessingUseCase.processOrder(event);
+            metricsService.incrementConsumerProcessingSuccess();
 
         }
         catch (Exception e) {
@@ -48,6 +51,7 @@ public class OrderPlacedEventConsumer {
         }
         finally {
             MDC.clear();
+            sample.stop(metricsService.getConsumerProcessingTime());
         }
     }
 }
