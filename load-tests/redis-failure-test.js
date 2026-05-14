@@ -7,16 +7,21 @@ export const options = {
         redis_failure_test: {
 
             executor: 'constant-arrival-rate',
-
             rate: 200,
-
             timeUnit: '1s',
-
             duration: '20s',
-
             preAllocatedVUs: 100,
-            maxVUs: 500,
+            maxVUs: 500
         },
+    },
+    thresholds: {
+
+        http_req_duration: ['p(95)<3000'],
+        checks: ['rate>0.90'],
+    },
+
+    tags: {
+        failure_mode: 'redis_down'
     },
 };
 
@@ -27,7 +32,7 @@ export default function () {
     const userId = `user-${__VU}`;
 
     const payload = JSON.stringify({
-        productId: 4
+        productId: 9
     });
 
     const params = {
@@ -38,7 +43,7 @@ export default function () {
     };
 
     const response = http.post(
-        `${BASE_URL}/api/v1/sales/22/purchase`,
+        `${BASE_URL}/api/v1/sales/25/purchase`,
         payload,
         params
     );

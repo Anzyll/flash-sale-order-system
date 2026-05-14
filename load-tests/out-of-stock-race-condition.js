@@ -9,20 +9,23 @@ export const options = {
 export default function () {
 
     const payload = JSON.stringify({
-        productId: 5
+        productId: 2,
+        thresholds: {
+            http_req_failed: ['rate<0.20'],
+            http_req_duration: ['p(95)<2000'],
+        },
     });
 
     const params = {
         headers: {
             'Content-Type': 'application/json',
-
-            // unique simulated user
             'X-USER-ID': `user-${__VU}`
         },
+        timeout: '5s'
     };
 
     const response = http.post(
-        'http://localhost:8000/api/v1/sales/22/purchase',
+        'http://localhost:8000/api/v1/sales/25/purchase',
         payload,
         params
     );
@@ -32,7 +35,4 @@ export default function () {
             r.status === 202 || r.status === 409,
     });
 
-    console.log(
-        `VU=${__VU}, USER=user-${__VU}, STATUS=${response.status}`
-    );
 }

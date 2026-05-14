@@ -8,16 +8,21 @@ export const options = {
         sale_start_burst: {
 
             executor: 'constant-arrival-rate',
-
             rate: 1000,
-
             timeUnit: '1s',
-
-            duration: '20s',
-
+            duration: '1m',
             preAllocatedVUs: 500,
             maxVUs: 2000,
         },
+    },
+    thresholds: {
+        http_req_duration: ['p(95)<2000'],
+        http_req_failed: ['rate<0.10'],
+        checks: ['rate>0.95'],
+    },
+
+    tags: {
+        test_type: 'constant_arrival_rate_burst'
     },
 };
 
