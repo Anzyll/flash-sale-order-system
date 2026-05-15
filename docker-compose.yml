@@ -92,9 +92,35 @@ services:
 
   grafana:
     image: grafana/grafana
+    restart: unless-stopped
     ports:
       - "3000:3000"
+    volumes:
+      - grafana_data:/var/lib/grafana
+    environment:
+      - GF_SMTP_ENABLED=true
+      - GF_SMTP_HOST=smtp.gmail.com:587
+      - GF_SMTP_USER=anzil2003m@gmail.com
+      - GF_SMTP_PASSWORD=alce gsrv gemu foir
+      - GF_SMTP_FROM_ADDRESS=anzil2003m@gmail.com
+      - GF_SMTP_FROM_NAME=Flash Sale Alerts
+      - GF_SMTP_SKIP_VERIFY=true
+
+  tempo:
+    image: grafana/tempo:2.5.0
+    container_name: tempo
+
+    command: [ "-config.file=/etc/tempo.yaml" ]
+
+    volumes:
+      - ./tempo.yaml:/etc/tempo.yaml
+
+    ports:
+      - "3200:3200"   # Tempo UI/API
+      - "4318:4318"   # OTLP HTTP
+
 
 volumes:
   postgres_data:
   redis_data:
+  grafana_data:

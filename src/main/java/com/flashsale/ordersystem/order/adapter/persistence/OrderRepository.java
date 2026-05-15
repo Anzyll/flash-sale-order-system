@@ -34,7 +34,5 @@ public interface OrderRepository extends JpaRepository<Order,Long> {
     int expireIfPending(@Param("id") Long id, @Param("pendingStatus") OrderStatus pendingStatus,@Param("expiredStatus") OrderStatus expiredStatus);
 
     Optional<Order> findByIdAndUser_KeycloakId(Long orderId, String userKeycloakId);
-    Optional<Order> findTopByUser_KeycloakIdOrderByCreatedAtDesc(
-            String keycloakId
-    );
+
 }

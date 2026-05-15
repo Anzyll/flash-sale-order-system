@@ -18,6 +18,7 @@ import org.testcontainers.containers.GenericContainer;
 import org.testcontainers.junit.jupiter.Container;
 import org.testcontainers.junit.jupiter.Testcontainers;
 
+import java.time.Instant;
 import java.util.Objects;
 import java.util.UUID;
 import java.util.concurrent.CountDownLatch;
@@ -186,7 +187,8 @@ public class RedisStockReservationIntegrationTest {
         redisStockAdapter.confirmPurchase(
                 "1L",
                 1L,
-                10L
+                10L,
+                Instant.now().plusSeconds(3600)
         );
         String purchaseReservedKey = redisTemplate.opsForValue().get("purchase_reserved:1L:1:10");
         assertNull(purchaseReservedKey);

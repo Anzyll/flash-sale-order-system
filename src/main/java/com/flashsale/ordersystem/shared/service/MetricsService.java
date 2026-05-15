@@ -16,6 +16,8 @@ public class MetricsService {
     private final Timer purchaseProcessingDuration;
     private final Timer consumerProcessingTimer;
     private final Counter consumerProcessingSuccessCounter;
+    private final Counter allowedRequestsCounter;
+    private final Counter blockedRequestsCounter;
 
     public MetricsService(MeterRegistry meterRegistry) {
         this.purchaseSuccessCounter = Counter
@@ -61,12 +63,20 @@ public class MetricsService {
                         .description("consumer processing success")
                         .register(meterRegistry);
 
+        this.allowedRequestsCounter = Counter.builder(
+                        "rate_limit_allowed_total"
+                )
+                .register(meterRegistry);
+
+        this.blockedRequestsCounter = Counter.builder(
+                        "rate_limit_blocked_total"
+                )
+                .register(meterRegistry);
 
     }
 
 
     public void incrementPurchaseSuccess(){
-        System.out.println("SUCCESS METRIC INCREMENTED");
         purchaseSuccessCounter.increment();
     }
 
@@ -103,4 +113,11 @@ public class MetricsService {
         return consumerProcessingTimer;
     }
 
+    public void incrementAllowedRequests() {
+        allowedRequestsCounter.increment();
+    }
+
+    public void incrementBlockedRequests() {
+        blockedRequestsCounter.increment();
+    }
 }

@@ -324,7 +324,7 @@ public class OrderServiceTest {
                 .save(any(OrderItem.class));
 
         verify(stockReservationPort)
-                .confirmPurchase(userId, saleId, productId);
+                .confirmPurchase(userId, saleId, productId,Instant.now());
 
         verify(processedEventRepository)
                 .save(any(ProcessedEvent.class));
@@ -354,7 +354,7 @@ public class OrderServiceTest {
         verifyNoInteractions(orderItemRepository);
 
         verify(stockReservationPort, never())
-                .confirmPurchase(any(), any(), any());
+                .confirmPurchase(any(), any(), any(),any());
 
         verify(processedEventRepository, never())
                 .save(any());
@@ -402,7 +402,7 @@ public class OrderServiceTest {
 
         doThrow(new BusinessException(ErrorCode.INSUFFICIENT_STOCK))
                 .when(stockReservationPort)
-                .confirmPurchase(userId, saleId, productId);
+                .confirmPurchase(userId, saleId, productId,Instant.now());
 
         orderService.processOrder(event);
 

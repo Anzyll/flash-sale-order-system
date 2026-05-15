@@ -50,7 +50,7 @@ public class OrderService implements OrderProcessingUseCase {
         try {
             log.info("Purchased started. userId={}, saleId={}, productId={}",
                     userId, saleId, productId);
-            validatePurchaseRequest(userId, saleId, productId);
+            validatePurchaseRequest(saleId, productId);
             boolean success;
             try {
                 success = stockReservationPort.tryPurchase(userId, saleId, productId, DEFAULT_QUANTITY);
@@ -110,11 +110,9 @@ public class OrderService implements OrderProcessingUseCase {
         }
     }
 
-    private void validatePurchaseRequest(String userId, Long saleId, Long productId) {
-        userService.getUserOrThrow(userId);
+    private void validatePurchaseRequest(Long saleId, Long productId) {
         saleService.validateSaleExists(saleId);
         saleService.validateProductInSale(saleId, productId);
-
         if (!stockReservationPort.isSaleActive(saleId)) {
             throw new BusinessException(ErrorCode.SALE_NOT_ACTIVE);
         }
