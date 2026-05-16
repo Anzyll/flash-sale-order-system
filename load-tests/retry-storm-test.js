@@ -25,7 +25,7 @@ export const options = {
 export default function () {
 
     const payload = JSON.stringify({
-        productId: 10
+        productId: 13
     });
 
     // Same users continuously retrying

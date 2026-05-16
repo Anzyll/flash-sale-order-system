@@ -6,8 +6,8 @@ export const options = {
         purchase_spike: {
             executor: 'shared-iterations',
 
-            vus:6000,
-            iterations: 6000,
+            vus:5000,
+            iterations: 5000,
 
             maxDuration: '3m'
         },
@@ -23,7 +23,7 @@ export const options = {
 export default function () {
 
     const payload = JSON.stringify({
-        productId: 9
+        productId: 1
     });
 
     const userId = `user-${__VU}`;

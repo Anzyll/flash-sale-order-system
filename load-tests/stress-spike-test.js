@@ -45,8 +45,8 @@ export const options = {
 
 const BASE_URL = 'http://localhost:8000';
 
-const SALE_ID = 25;
-const PRODUCT_ID = 14;
+const SALE_ID = 27;
+const PRODUCT_ID = 1;
 
 export default function () {
 
