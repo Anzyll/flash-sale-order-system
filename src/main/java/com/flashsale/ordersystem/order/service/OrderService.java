@@ -3,6 +3,9 @@ package com.flashsale.ordersystem.order.service;
 import com.flashsale.ordersystem.order.adapter.rest.dto.OrderStatusResponse;
 import com.flashsale.ordersystem.order.adapter.rest.dto.PurchaseResponse;
 import com.flashsale.ordersystem.order.port.OrderProcessingUseCase;
+import com.flashsale.ordersystem.product.domain.Product;
+import com.flashsale.ordersystem.product.service.ProductService;
+import com.flashsale.ordersystem.sale.domain.model.Sale;
 import com.flashsale.ordersystem.shared.exception.BusinessException;
 import com.flashsale.ordersystem.shared.exception.ErrorCode;
 import com.flashsale.ordersystem.shared.exception.InfrastructureException;
@@ -44,6 +47,7 @@ public class OrderService implements OrderProcessingUseCase {
     private final ProcessedEventRepository processedEventRepository;
     private final SaleService saleService;
     private final MetricsService metricsService;
+    private final ProductService productService;
     private static final int DEFAULT_QUANTITY = 1;
     public PurchaseResponse purchase(String userId, Long saleId, Long productId) {
         Timer.Sample sample = Timer.start();
@@ -138,13 +142,19 @@ public class OrderService implements OrderProcessingUseCase {
                     event.getProductId()
             );
 
+            Sale sale = saleService.getSaleEntity(saleData.saleId());
+
+            Product product =
+                    productService.getProductEntity(saleData.productId());
+
+
             order = new Order();
+            order.setSale(sale);
+            order.setProduct(product);
             order.setStatus(OrderStatus.PENDING);
             order.setUser(user);
-            order.setSale(saleData.sale());
-            order.setProduct(saleData.product());
             order.setCreatedAt(Instant.now());
-            order.setTotalAmount(saleData.price());
+            order.setTotalAmount(product.getPrice());
 
             Order savedOrder = orderRepository.save(order);
 
@@ -152,14 +162,14 @@ public class OrderService implements OrderProcessingUseCase {
             orderItem.setOrder(savedOrder);
             orderItem.setProduct(savedOrder.getProduct());
             orderItem.setQuantity(DEFAULT_QUANTITY);
-            orderItem.setPrice(saleData.price());
+            orderItem.setPrice(product.getPrice());
 
             orderItemRepository.save(orderItem);
 
             order.setStatus(OrderStatus.CONFIRMED);
             orderRepository.save(order);
 
-            stockReservationPort.confirmPurchase(event.getUserId(),event.getSaleId(), event.getProductId(),saleData.sale().getEndTime());
+            stockReservationPort.confirmPurchase(event.getUserId(),event.getSaleId(), event.getProductId(),saleData.endTime());
 
             processedEventRepository.save(
                     new ProcessedEvent(event.getEventId())
@@ -211,7 +221,7 @@ public class OrderService implements OrderProcessingUseCase {
         var saleData = saleService.getSaleAndItem(saleId, productId);
         long ttl = Duration.between(
                 Instant.now(),
-                saleData.sale().getEndTime()
+                saleData.endTime()
         ).getSeconds();
         ttl = Math.max(ttl, 60);
         stockReservationPort.recoverStock(saleId, productId, remaining, ttl);

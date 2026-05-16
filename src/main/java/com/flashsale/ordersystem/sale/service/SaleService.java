@@ -1,25 +1,24 @@
 package com.flashsale.ordersystem.sale.service;
 
-import com.flashsale.ordersystem.sale.presentation.dto.ProductAvailabilityResponse;
+import com.flashsale.ordersystem.sale.presentation.dto.*;
 import com.flashsale.ordersystem.shared.exception.BusinessException;
 import com.flashsale.ordersystem.shared.exception.ErrorCode;
 import com.flashsale.ordersystem.product.service.ProductService;
 import com.flashsale.ordersystem.product.domain.Product;
 import com.flashsale.ordersystem.sale.domain.enums.SaleStatus;
-import com.flashsale.ordersystem.sale.presentation.dto.AddProductToSaleRequest;
 import com.flashsale.ordersystem.sale.domain.model.Sale;
-import com.flashsale.ordersystem.sale.presentation.dto.CreateSaleRequest;
 import com.flashsale.ordersystem.sale.domain.model.SaleItem;
 import com.flashsale.ordersystem.sale.presentation.mapper.SaleItemMapper;
 import com.flashsale.ordersystem.sale.presentation.mapper.SaleMapper;
 import com.flashsale.ordersystem.sale.repository.SaleItemRepository;
 import com.flashsale.ordersystem.sale.repository.SaleRepository;
-import com.flashsale.ordersystem.sale.presentation.dto.SaleData;
 import com.flashsale.ordersystem.shared.port.SaleStockPort;
 import com.flashsale.ordersystem.shared.port.StockReservationPort;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.cache.annotation.CacheEvict;
+import org.springframework.cache.annotation.Cacheable;
 import org.springframework.dao.DataIntegrityViolationException;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -113,8 +112,12 @@ public class SaleService {
         }
     }
 
-    public SaleData getSaleAndItem(Long saleId, Long productId) {
-
+    @Cacheable(
+            value = "CachedSaleData",
+            key = "'sale-data:' + #saleId + ':' + #productId"
+    )
+    public CachedSaleData getSaleAndItem(Long saleId, Long productId) {
+        log.info("Fetching SaleData from DB");
         Sale sale = saleRepository.findById(saleId)
                 .orElseThrow(() -> new BusinessException(ErrorCode.SALE_NOT_FOUND));
 
@@ -122,9 +125,12 @@ public class SaleService {
                 .findBySaleIdAndProductId(saleId, productId)
                 .orElseThrow(() -> new BusinessException(ErrorCode.PRODUCT_NOT_FOUND));
 
-        return new SaleData(
-                sale,
-                item.getProduct(),
+        return new CachedSaleData(
+                sale.getId(),
+                sale.getStatus().name(),
+                sale.getEndTime(),
+                item.getProduct().getId(),
+                item.getProduct().getName(),
                 item.getSalePrice()
         );
     }
@@ -138,6 +144,7 @@ public class SaleService {
     }
 
     @Transactional
+    @CacheEvict( value = "CachedSaleDate", allEntries = true )
     public void activateSale(Long saleId){
         Sale sale = saleRepository.findById(saleId).orElseThrow();
         if (sale.getStatus() != SaleStatus.PENDING) return;
@@ -167,6 +174,7 @@ public class SaleService {
     }
 
     @Transactional
+    @CacheEvict( value = "CachedSaleDate", allEntries = true )
     public void deactivateSale(Long saleId){
         Sale sale = saleRepository.findById(saleId).orElseThrow();
         if (sale.getStatus() != SaleStatus.ACTIVE) return;
@@ -208,6 +216,11 @@ public class SaleService {
                 soldOut,
                 saleStatus
         );
+    }
+    public Sale getSaleEntity(Long saleId) {
+        return saleRepository.findById(saleId)
+                .orElseThrow(() ->
+                        new BusinessException(ErrorCode.SALE_NOT_FOUND));
     }
 
 }

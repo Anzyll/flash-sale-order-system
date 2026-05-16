@@ -29,4 +29,9 @@ public class ProductService {
         return productRepository.findById(productId)
                 .orElseThrow(() -> new BusinessException(ErrorCode.PRODUCT_NOT_FOUND));
     }
+    public Product getProductEntity(Long productId) {
+        return productRepository.findById(productId)
+                .orElseThrow(() ->
+                        new BusinessException(ErrorCode.PRODUCT_NOT_FOUND));
+    }
 }
