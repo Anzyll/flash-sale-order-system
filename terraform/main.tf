@@ -28,30 +28,15 @@ resource "aws_security_group" "flash_sale_sg" {
   }
 
   ingress {
-    from_port   = 80
-    to_port     = 80
+    from_port   = 9092
+    to_port     = 9092
     protocol    = "tcp"
     cidr_blocks = ["0.0.0.0/0"]
   }
-
-  ingress {
-    from_port   = 3000
-    to_port     = 3000
-    protocol    = "tcp"
-    cidr_blocks = ["0.0.0.0/0"]
-  }
-
 
   ingress {
     from_port   = 8080
     to_port     = 8080
-    protocol    = "tcp"
-    cidr_blocks = ["0.0.0.0/0"]
-  }
-
-  ingress {
-    from_port   = 9090
-    to_port     = 9090
     protocol    = "tcp"
     cidr_blocks = ["0.0.0.0/0"]
   }
@@ -74,4 +59,16 @@ resource "aws_db_instance" "flash_sale_db" {
 
   publicly_accessible  = true
   skip_final_snapshot  = true
+}
+
+resource "aws_elasticache_cluster" "flash_sale_redis" {
+  cluster_id           = "flash-sale-redis"
+  engine               = "redis"
+  node_type            = "cache.t3.micro"
+  num_cache_nodes      = 1
+  port                 = 6379
+
+  tags = {
+    Name = "flash-sale-redis"
+  }
 }
