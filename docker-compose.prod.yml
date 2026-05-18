@@ -1,15 +1,23 @@
 services:
-
   app:
     image: 385704849987.dkr.ecr.ap-south-1.amazonaws.com/flash-sale-order-system-app:latest
     container_name: flashsale-app
+
     restart: unless-stopped
+
     ports:
       - "8080:8080"
+
+    network_mode: "host"
+
+    build:
+        context: .
     environment:
       - SPRING_PROFILES_ACTIVE=prod
       - DB_USERNAME=${DB_USERNAME}
       - DB_PASSWORD=${DB_PASSWORD}
+      - SPRING_DATA_REDIS_HOST=flash-sale-redis.dlejyv.0001.aps1.cache.amazonaws.com
+      - SPRING_DATA_REDIS_PORT=6379
     depends_on:
       - kafka
 

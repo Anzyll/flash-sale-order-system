@@ -41,6 +41,14 @@ resource "aws_security_group" "flash_sale_sg" {
     cidr_blocks = ["0.0.0.0/0"]
   }
 
+  ingress {
+    description      = "Flash Sale App Traffic"
+    from_port        = 8085
+    to_port          = 8085
+    protocol         = "tcp"
+    cidr_blocks      = ["0.0.0.0/0"] # Allows access from anywhere
+  }
+
   egress {
     from_port   = 0
     to_port     = 0
@@ -61,12 +69,34 @@ resource "aws_db_instance" "flash_sale_db" {
   skip_final_snapshot  = true
 }
 
+resource "aws_security_group" "redis_sg" {
+  name        = "flash-sale-redis-security-group"
+  description = "Allow inbound traffic from the EC2 instance group only"
+
+  ingress {
+    from_port       = 6379
+    to_port         = 6379
+    protocol        = "tcp"
+    # This locks down Redis down so ONLY your EC2 app server can talk to it
+    security_groups = [aws_security_group.flash_sale_sg.id]
+  }
+
+  egress {
+    from_port   = 0
+    to_port     = 0
+    protocol    = "-1"
+    cidr_blocks = ["0.0.0.0/0"]
+  }
+}
+
 resource "aws_elasticache_cluster" "flash_sale_redis" {
   cluster_id           = "flash-sale-redis"
   engine               = "redis"
   node_type            = "cache.t3.micro"
   num_cache_nodes      = 1
   port                 = 6379
+
+  security_group_ids   = [aws_security_group.redis_sg.id]
 
   tags = {
     Name = "flash-sale-redis"
