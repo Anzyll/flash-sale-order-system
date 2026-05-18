@@ -21,6 +21,8 @@ services:
       - "8000:8000"
     environment:
       - SPRING_PROFILES_ACTIVE=prod
+      - DB_USERNAME=${DB_USERNAME}
+      - DB_PASSWORD=${DB_PASSWORD}
     depends_on:
       - redis
       - kafka
