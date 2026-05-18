@@ -9,7 +9,7 @@ resource "aws_key_pair" "flash_sale_key" {
 
 resource "aws_instance" "flash_sale_server" {
   ami           = "ami-0f58b397bc5c1f2e8"
-  instance_type = "t3.micro"
+  instance_type = "t3.small"
   vpc_security_group_ids = [aws_security_group.flash_sale_sg.id]
   key_name = aws_key_pair.flash_sale_key.key_name
   tags = {
@@ -41,9 +41,10 @@ resource "aws_security_group" "flash_sale_sg" {
     cidr_blocks = ["0.0.0.0/0"]
   }
 
+
   ingress {
-    from_port   = 8000
-    to_port     = 8000
+    from_port   = 8080
+    to_port     = 8080
     protocol    = "tcp"
     cidr_blocks = ["0.0.0.0/0"]
   }
