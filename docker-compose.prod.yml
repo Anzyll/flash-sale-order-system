@@ -26,8 +26,7 @@ services:
     restart: unless-stopped
     depends_on:
       - zookeeper
-    ports:
-      - "9092:9092"
+
 
     environment:
       KAFKA_ZOOKEEPER_CONNECT: zookeeper:2181
