@@ -126,10 +126,6 @@ Kafka Consumer
 
 The system includes multiple recovery and compensation mechanisms to preserve consistency during failures.
 
-## Failure Recovery Diagram
-
-![Failure Recovery](docs/images/failure-path.jpeg)
-
 ## Recovery Features
 
 - Producer retry queue with Redis-backed DLQ
@@ -183,10 +179,6 @@ Load testing using k6 simulated flash-sale traffic with `8,000+` concurrent purc
 - Redis caching significantly reduced hot-path latency
 - Failure recovery workflows prevented inconsistent order states
 
-## Load Testing
-
-![k6 Load Test](docs/images/k6-load-test.jpeg)
-
 Detailed performance analysis is available in `/docs/load-testing.md`.
 
 ---
@@ -202,21 +194,16 @@ The system integrates observability tooling for metrics collection, distributed 
 - OpenTelemetry — distributed tracing instrumentation
 - Tempo — distributed trace aggregation
 
-## Monitoring Dashboard
-
-![Grafana Dashboard](docs/images/system-health-dashboard.jpeg)
 
 Monitored metrics include:
 
-- API latency
+- P95 latency
 - Request throughput
 - Error rates
 - JVM memory usage
 - Infrastructure resource utilization
 
 ## Distributed Tracing
-
-![Distributed Trace](docs/images/trace.jpeg)
 
 Distributed tracing was used to analyze asynchronous request flow and identify latency bottlenecks during high-concurrency scenarios.
 
@@ -293,10 +280,6 @@ Infrastructure provisioned using Terraform-based Infrastructure as Code (IaC).
 - AWS ECR
 - Kafka + Zookeeper cluster
 - Dockerized services
-
-## Deployment Diagram
-
-![Deployment Diagram](docs/images/deployment-diagram.jpeg)
 
 > Deployment details available in `/docs/deployment.md`.
 
