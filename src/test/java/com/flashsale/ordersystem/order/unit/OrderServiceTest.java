@@ -44,7 +44,7 @@ import static org.junit.jupiter.api.Assertions.*;
 import static org.mockito.Mockito.*;
 
 @ExtendWith(MockitoExtension.class)
-@MockitoSettings(strictness = Strictness.LENIENT) // shared @BeforeEach and helper stubs intentionally over-stub
+@MockitoSettings(strictness = Strictness.LENIENT)
 public class OrderServiceTest {
 
     @Mock private StockReservationPort stockReservationPort;
@@ -168,12 +168,7 @@ public class OrderServiceTest {
         verify(orderEventPublisher, never()).publish(any(OrderPlacedEvent.class));
     }
 
-    // ───────────────────────── processOrder() ─────────────────────────
 
-    /**
-     * Stubs every dependency that processOrder() may touch.
-     * LENIENT strictness means unused stubs in a given test don't cause failures.
-     */
     private CachedSaleData stubProcessOrderDependencies() {
         CachedSaleData cachedSaleData = mock(CachedSaleData.class);
         when(cachedSaleData.saleId()).thenReturn(saleId);
@@ -193,8 +188,6 @@ public class OrderServiceTest {
         product.setPrice(BigDecimal.valueOf(999));
         when(productService.getProductEntity(productId)).thenReturn(product);
 
-        // Return the same Order instance that was passed in so the service
-        // can keep calling setStatus() on the same object reference.
         when(orderRepository.save(any(Order.class)))
                 .thenAnswer(invocation -> invocation.getArgument(0));
         when(orderItemRepository.save(any(OrderItem.class)))

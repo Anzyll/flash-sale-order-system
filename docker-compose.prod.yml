@@ -35,7 +35,6 @@ services:
     depends_on:
       - zookeeper
 
-
     environment:
       KAFKA_ZOOKEEPER_CONNECT: zookeeper:2181
       KAFKA_LISTENERS: PLAINTEXT://0.0.0.0:9092
