@@ -3,6 +3,7 @@ package com.flashsale.ordersystem.order.integration;
 import com.flashsale.ordersystem.order.adapter.kafka.producer.OrderEventPublisherAdapter;
 import com.flashsale.ordersystem.order.domain.model.OrderPlacedEvent;
 import com.flashsale.ordersystem.order.port.ProducerRetryQueuePort;
+import com.flashsale.ordersystem.shared.service.MetricsService;
 import org.apache.kafka.clients.consumer.Consumer;
 import org.apache.kafka.clients.consumer.ConsumerRecord;
 import org.apache.kafka.common.serialization.StringDeserializer;
@@ -62,6 +63,8 @@ public class OrderPublisherIntegrationTest {
     private OrderEventPublisherAdapter publisherAdapter;
     @MockBean
     private ProducerRetryQueuePort producerRetryQueuePort;
+    @MockBean
+    private MetricsService metricsService;
 
     @Test
     void shouldPublishOrderPlacedEvent(){

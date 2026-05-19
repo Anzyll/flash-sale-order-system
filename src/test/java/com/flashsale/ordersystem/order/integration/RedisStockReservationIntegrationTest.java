@@ -5,10 +5,12 @@ import static org.junit.jupiter.api.Assertions.*;
 
 import com.flashsale.ordersystem.shared.config.RedisConfig;
 import com.flashsale.ordersystem.shared.exception.BusinessException;
+import com.flashsale.ordersystem.shared.service.MetricsService;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.autoconfigure.data.redis.DataRedisTest;
+import org.springframework.boot.test.mock.mockito.MockBean;
 import org.springframework.context.annotation.Import;
 import org.springframework.data.redis.connection.RedisConnection;
 import org.springframework.data.redis.core.StringRedisTemplate;
@@ -54,6 +56,8 @@ public class RedisStockReservationIntegrationTest {
     private RedisStockAdapter redisStockAdapter;
     @Autowired
     private StringRedisTemplate redisTemplate;
+    @MockBean
+    private MetricsService metricsService;
 
     @BeforeEach
     void setup() {

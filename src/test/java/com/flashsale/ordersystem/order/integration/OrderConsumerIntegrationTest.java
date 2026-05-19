@@ -9,6 +9,7 @@ import com.flashsale.ordersystem.sale.domain.model.Sale;
 import com.flashsale.ordersystem.sale.domain.model.SaleItem;
 import com.flashsale.ordersystem.sale.repository.SaleItemRepository;
 import com.flashsale.ordersystem.sale.repository.SaleRepository;
+import com.flashsale.ordersystem.shared.service.MetricsService;
 import com.flashsale.ordersystem.user.domain.User;
 import com.flashsale.ordersystem.user.repository.UserRepository;
 import com.flashsale.ordersystem.user.service.UserService;
@@ -24,6 +25,7 @@ import org.springframework.kafka.core.KafkaTemplate;
 import org.springframework.security.oauth2.jwt.JwtDecoder;
 import org.springframework.test.context.DynamicPropertyRegistry;
 import org.springframework.test.context.DynamicPropertySource;
+import org.testcontainers.containers.GenericContainer;
 import org.testcontainers.containers.PostgreSQLContainer;
 import org.testcontainers.junit.jupiter.Container;
 import org.testcontainers.junit.jupiter.Testcontainers;
@@ -68,6 +70,10 @@ class OrderConsumerIntegrationTest {
                     .withDatabaseName("test-db")
                     .withUsername("test")
                     .withPassword("test");
+    @Container
+    static GenericContainer<?> redisContainer =
+            new GenericContainer<>("redis:7-alpine")
+                    .withExposedPorts(6379);
 
     @DynamicPropertySource
     static void configureProperties(
@@ -122,6 +128,15 @@ class OrderConsumerIntegrationTest {
         registry.add(
                 "keycloak.password",
                 () -> "admin"
+        );
+        registry.add(
+                "spring.data.redis.host",
+                redisContainer::getHost
+        );
+
+        registry.add(
+                "spring.data.redis.port",
+                () -> redisContainer.getMappedPort(6379).toString()
         );
     }
 

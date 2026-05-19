@@ -29,6 +29,12 @@ Without careful system design, systems typically fail due to:
 
 This project explores how production systems solve concurrency, asynchronous scalability, fault tolerance, recovery orchestration, and observability under high load.
 
+## Engineering Case Study
+
+Detailed architecture decisions, failure handling, load-testing observations, and distributed systems tradeoffs are covered in the Medium article:
+
+[How I Built a Flash Sale Backend That Survived 10,000 Concurrent Purchase Requests](https://medium.com/@anzil2003m/how-i-built-a-flash-sale-backend-that-survived-10-000-concurrent-purchase-requests-f4c65b2c8531?postPublishedType=repub)
+
 ---
 
 # ️ Architecture
