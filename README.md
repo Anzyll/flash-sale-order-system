@@ -1,4 +1,4 @@
-# ⚡ High-Concurrency Flash Sale System
+# High-Concurrency Flash Sale System
 
 > A production-oriented high-concurrency backend validated under 10,000+ concurrent simulated flash sale requests using Redis Lua-based atomic inventory control, Kafka asynchronous processing, fault-tolerant recovery mechanisms, and distributed observability.
 
@@ -15,7 +15,7 @@
 
 ---
 
-# 📌 Problem Statement
+#  Problem Statement
 
 Flash sale systems create one of the hardest backend engineering problems: thousands of users attempting to purchase limited inventory simultaneously.
 
@@ -31,7 +31,7 @@ This project explores how production systems solve concurrency, asynchronous sca
 
 ---
 
-# 🏗️ Architecture
+# ️ Architecture
 
 > **Style:** Modular Monolith · Hexagonal Architecture (Ports & Adapters) · Event-Driven
 
@@ -69,7 +69,7 @@ Kafka Consumer
 
 ---
 
-# ⚡ Reliability & Distributed Systems Features
+#  Reliability & Distributed Systems Features
 
 - Redis Lua-based atomic inventory reservation
 - Kafka asynchronous order processing
@@ -86,7 +86,7 @@ Kafka Consumer
 
 ---
 
-# 🧠 Engineering Challenges Solved
+#  Engineering Challenges Solved
 
 | Challenge | Solution |
 |---|---|
@@ -103,7 +103,7 @@ Kafka Consumer
 
 ---
 
-# 🔄 Purchase Flow
+#  Purchase Flow
 
 ## Purchase Flow Diagram
 
@@ -122,7 +122,7 @@ Kafka Consumer
 
 ---
 
-# 🔥 Failure Handling & Recovery
+#  Failure Handling & Recovery
 
 The system includes multiple recovery and compensation mechanisms to preserve consistency during failures.
 
@@ -140,7 +140,7 @@ The system includes multiple recovery and compensation mechanisms to preserve co
 
 ---
 
-# ♻️ Redis Recovery Strategy
+#  Redis Recovery Strategy
 
 Redis is treated as a high-performance concurrency layer — not the source of truth.
 
@@ -158,7 +158,7 @@ This ensures inventory consistency even after Redis restart or cache loss.
 
 ---
 
-# 📈 Performance Validation
+#  Performance Validation
 
 Load testing using k6 simulated flash-sale traffic with `8,000+` concurrent purchase requests on local infrastructure.
 
@@ -183,7 +183,7 @@ Detailed performance analysis is available in `/docs/load-testing.md`.
 
 ---
 
-# 📊 Observability & Monitoring
+#  Observability & Monitoring
 
 The system integrates observability tooling for metrics collection, distributed tracing, infrastructure monitoring, and performance analysis.
 
@@ -218,7 +218,7 @@ Additional observability details are available in `/docs/observability.md`.
 
 ---
 
-# 🧪 Testing Strategy
+#  Testing Strategy
 
 ## Coverage
 
@@ -236,7 +236,7 @@ Additional observability details are available in `/docs/observability.md`.
 
 ---
 
-# 🔐 Authentication & Authorization
+#  Authentication & Authorization
 
 Authentication and authorization handled using:
 
@@ -246,7 +246,7 @@ Authentication and authorization handled using:
 
 ---
 
-# 🧰 Tech Stack
+#  Tech Stack
 
 | Category | Technology |
 |---|---|
@@ -268,7 +268,7 @@ Authentication and authorization handled using:
 
 ---
 
-# 🌍 Infrastructure & Deployment
+#  Infrastructure & Deployment
 
 Infrastructure provisioned using Terraform-based Infrastructure as Code (IaC).
 
@@ -286,7 +286,7 @@ Infrastructure provisioned using Terraform-based Infrastructure as Code (IaC).
 ---
 
 
-# 📂 Project Structure
+#  Project Structure
 
 ```text
 src/
@@ -316,7 +316,7 @@ docs/
 
 ---
 
-# 📚 Documentation
+#  Documentation
 
 | Document | Description |
 |---|---|
@@ -329,7 +329,7 @@ docs/
 
 ---
 
-# 🚀 Getting Started
+#  Getting Started
 
 ## Prerequisites
 
@@ -361,14 +361,14 @@ http://localhost:8000/swagger-ui/index.html
 
 ---
 
-# 🚧 Future Improvements
+#  Future Improvements
 
 - Kubernetes-based orchestration and scaling
 - Multi-instance deployment for higher availability
 
 ---
 
-# ⚠️ Known Limitations
+# ️ Known Limitations
 
 - Single-node Kafka and Redis deployment without clustering or replication
 - Eventual consistency due to asynchronous processing
@@ -376,7 +376,7 @@ http://localhost:8000/swagger-ui/index.html
 
 ---
 
-# 👨‍💻 Author
+#  Author
 
 **Muhammed Anzil M**
 
@@ -384,6 +384,6 @@ Backend Developer interested in distributed systems, high-concurrency backend en
 
 ---
 
-# 📄 License
+#  License
 
 This project is licensed under the MIT License. See the [LICENSE](LICENSE) file for details.

@@ -1,4 +1,4 @@
-# 🔥 Recovery Strategy
+#  Recovery Strategy
 
 This document describes the retry workflows, failure handling mechanisms, idempotency protections, and recovery orchestration used in the Flash Sale System.
 
@@ -13,7 +13,7 @@ while operating under high-concurrency asynchronous workloads.
 
 ---
 
-# 📌 Recovery Overview
+#  Recovery Overview
 
 The system includes multiple recovery workflows to handle:
 
@@ -39,7 +39,7 @@ Recovery architecture combines:
 
 ---
 
-# 📨 Producer Failure Recovery
+#  Producer Failure Recovery
 
 ## Problem
 
@@ -92,7 +92,7 @@ This prevents permanent stock loss.
 
 ---
 
-# 📨 Consumer Failure Recovery
+#  Consumer Failure Recovery
 
 ## Problem
 
@@ -129,7 +129,7 @@ Background recovery jobs inspect failed events and attempt safe reprocessing.
 
 ---
 
-# 🔁 Idempotent Recovery Protection
+#  Idempotent Recovery Protection
 
 Retries and recovery workflows must not execute the same event multiple times.
 
@@ -162,7 +162,7 @@ could create:
 
 ---
 
-# ⚖️ Compensation-Based Consistency
+#  Compensation-Based Consistency
 
 The system follows an eventual consistency model.
 
@@ -182,7 +182,7 @@ Inventory is restored safely to Redis.
 
 ---
 
-# ♻️ Redis Recovery Strategy
+#  Redis Recovery Strategy
 
 Redis is treated as an ephemeral high-performance concurrency layer rather than a persistent source of truth.
 
@@ -213,7 +213,7 @@ This restores inventory consistency after:
 
 ---
 
-# ⏱️ Scheduler-Based Recovery Jobs
+#  Scheduler-Based Recovery Jobs
 
 Spring Scheduler is used for background recovery workflows.
 
@@ -228,7 +228,7 @@ This prevents failed events from remaining permanently unresolved.
 
 ---
 
-# 🚦 Failure Isolation
+#  Failure Isolation
 
 Recovery workflows are intentionally isolated from the main request path.
 
@@ -243,7 +243,7 @@ The API layer remains lightweight while recovery executes asynchronously.
 
 ---
 
-# 📊 Operational Benefits
+#  Operational Benefits
 
 The recovery architecture provides:
 
@@ -258,7 +258,7 @@ even during partial infrastructure failures.
 
 ---
 
-# 📌 Summary
+#  Summary
 
 The recovery strategy focuses on maintaining correctness and consistency in a highly concurrent asynchronous environment.
 

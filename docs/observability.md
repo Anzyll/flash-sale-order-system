@@ -1,4 +1,4 @@
-# 📊 Observability & Monitoring
+#  Observability & Monitoring
 
 This document describes the monitoring, alerting, metrics collection, and distributed tracing setup used in the Flash Sale System.
 
@@ -13,7 +13,7 @@ The observability stack was used to:
 
 ---
 
-# 📌 Observability Stack
+#  Observability Stack
 
 The system integrates:
 
@@ -26,7 +26,7 @@ for metrics collection, monitoring, alerting, and distributed tracing.
 
 ---
 
-# 📈 Metrics Collection
+#  Metrics Collection
 
 Prometheus is used for metrics scraping and aggregation across application and infrastructure components.
 
@@ -43,7 +43,7 @@ Collected metrics include:
 
 ---
 
-# 📊 Grafana Dashboards
+#  Grafana Dashboards
 
 Grafana dashboards were used during load testing and operational analysis to monitor both infrastructure health and business behavior.
 
@@ -112,7 +112,7 @@ Tracked metrics included:
 
 ---
 
-# 🔍 Distributed Tracing
+#  Distributed Tracing
 
 OpenTelemetry instrumentation was integrated across asynchronous request-processing workflows.
 
@@ -142,7 +142,7 @@ This later led to Redis cache optimization for hot-path sale data.
 
 ---
 
-# 🚦 Alerting
+#  Alerting
 
 Grafana alerting was configured for critical operational conditions.
 
@@ -166,7 +166,7 @@ Critical alerts were configured to notify the administrator through email-based 
 
 ---
 
-# ⚡ Operational Insights
+#  Operational Insights
 
 Observability tooling was heavily used during load testing and bottleneck analysis.
 
@@ -184,7 +184,7 @@ These findings later guided improvements including:
 
 ---
 
-# 📌 Summary
+#  Summary
 
 The observability stack provided visibility into:
 

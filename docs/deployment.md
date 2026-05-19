@@ -1,10 +1,10 @@
-# 🌍 Deployment & Infrastructure
+#  Deployment & Infrastructure
 
 This document describes the deployment architecture and infrastructure setup used in the Flash Sale System.
 
 ---
 
-# 📌 Infrastructure Overview
+#  Infrastructure Overview
 
 Infrastructure provisioning is managed using:
 
@@ -16,13 +16,13 @@ The deployment architecture combines application, messaging, persistence, and ca
 
 ---
 
-# 🧭 Deployment Architecture
+#  Deployment Architecture
 
 ![Deployment Diagram](images/deployment-diagram.jpeg)
 
 ---
 
-# ☁️ AWS Components
+# ️ AWS Components
 
 | Component | Purpose |
 |---|---|
@@ -33,7 +33,7 @@ The deployment architecture combines application, messaging, persistence, and ca
 
 ---
 
-# 🐳 Containerized Services
+#  Containerized Services
 
 Services are orchestrated using Docker Compose.
 
@@ -47,7 +47,7 @@ Core services include:
 
 ---
 
-# 🚀 Deployment Workflow
+#  Deployment Workflow
 
 ```text
 Build Application
@@ -70,7 +70,7 @@ Start Services using Docker Compose
 
 ---
 
-# 📊 Observability
+#  Observability
 
 The system integrates:
 
@@ -85,7 +85,7 @@ Due to AWS Free Tier resource constraints, observability tooling was primarily u
 
 ---
 
-# ⚠️ Current Limitations
+#  Current Limitations
 
 The current deployment setup is intentionally simplified for experimentation and architecture validation.
 
@@ -98,7 +98,7 @@ Current limitations include:
 
 ---
 
-# 🚧 Future Improvements
+#  Future Improvements
 
 Potential future improvements include:
 
@@ -110,7 +110,7 @@ Potential future improvements include:
 
 ---
 
-# 📌 Summary
+#  Summary
 
 The infrastructure combines:
 

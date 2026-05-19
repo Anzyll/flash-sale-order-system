@@ -1,10 +1,10 @@
-# 🏗️ System Architecture
+# System Architecture
 
 This document describes the overall architecture, request lifecycle, asynchronous processing flow, recovery mechanisms, and infrastructure design of the Flash Sale System.
 
 ---
 
-# 📌 System Overview
+#  System Overview
 
 The system is designed to handle high-concurrency flash-sale traffic while ensuring:
 
@@ -24,13 +24,13 @@ The architecture combines:
 
 ---
 
-# 🧭 High-Level Architecture
+#  High-Level Architecture
 
 ![Architecture Diagram](images/architecture-diagram.jpeg)
 
 ---
 
-# 🏛️ Architectural Style
+#  Architectural Style
 
 The system follows a **Modular Monolith** architecture with clear domain boundaries:
 
@@ -57,7 +57,7 @@ while avoiding the operational complexity of microservices.
 
 ---
 
-# 🔄 Request Lifecycle
+#  Request Lifecycle
 
 ```text
 Client
@@ -85,7 +85,7 @@ Kafka Consumer
 
 ---
 
-# ⚡ Purchase Flow
+#  Purchase Flow
 
 ![Purchase Flow](images/purchase-flow.jpeg)
 
@@ -102,7 +102,7 @@ Kafka Consumer
 
 ---
 
-# 🔒 Inventory Management
+#  Inventory Management
 
 Redis is used as the high-performance concurrency layer for inventory operations.
 
@@ -128,7 +128,7 @@ Both operations execute as a single atomic operation, preventing overselling dur
 
 ---
 
-# 📨 Asynchronous Order Processing
+#  Asynchronous Order Processing
 
 Kafka is used to decouple API traffic from database writes.
 
@@ -150,7 +150,7 @@ to preserve ordering per product while enabling parallel processing across parti
 
 ---
 
-# 🔁 Idempotency Strategy
+#  Idempotency Strategy
 
 Flash-sale systems must prevent duplicate order creation under retries and concurrent requests.
 
@@ -174,7 +174,7 @@ Processed events are tracked to prevent duplicate event execution during retries
 
 ---
 
-# 🔥 Failure Recovery Architecture
+#  Failure Recovery Architecture
 
 The system includes multiple retry and recovery workflows to preserve consistency during failures.
 
@@ -195,7 +195,7 @@ recovery-strategy.md
 
 ---
 
-# ♻️ Redis Recovery Strategy
+# ️ Redis Recovery Strategy
 
 Redis is treated as a high-performance concurrency layer — not the source of truth.
 
@@ -213,7 +213,7 @@ This ensures inventory consistency after Redis restart or cache loss.
 
 ---
 
-# 📊 Observability Architecture
+#  Observability Architecture
 
 The system integrates distributed observability tooling for monitoring, tracing, and bottleneck analysis.
 
@@ -248,7 +248,7 @@ Distributed tracing was used to analyze asynchronous request flow and identify l
 
 ---
 
-# 🚦 Rate Limiting
+#  Rate Limiting
 
 Bucket4j-based rate limiting is used to protect infrastructure during burst traffic and excessive retries.
 
@@ -262,7 +262,7 @@ This reduced infrastructure pressure and stabilized latency during load testing.
 
 ---
 
-# 🧪 Load Testing & Bottleneck Analysis
+#  Load Testing & Bottleneck Analysis
 
 Load testing was performed using k6 to simulate flash-sale traffic.
 
@@ -304,7 +304,7 @@ These findings were used to improve:
 
 ---
 
-# 🌍 Deployment Architecture
+#  Deployment Architecture
 
 Infrastructure is provisioned using Terraform-based Infrastructure as Code (IaC).
 
@@ -325,7 +325,7 @@ Infrastructure is provisioned using Terraform-based Infrastructure as Code (IaC)
 
 ---
 
-# 📂 Module Structure
+#  Module Structure
 
 ```text
 src/

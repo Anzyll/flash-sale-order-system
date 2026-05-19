@@ -1,4 +1,4 @@
-# 📄 Architecture Decisions
+#  Architecture Decisions
 
 This document captures the major architectural decisions, tradeoffs, and design rationale used in the Flash Sale System.
 
@@ -341,7 +341,7 @@ Current policy:
 
 ---
 
-# 📌 Summary
+#  Summary
 
 The architecture prioritizes:
 

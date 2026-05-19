@@ -1,4 +1,4 @@
-# 📈 Load Testing & Performance Analysis
+#  Load Testing & Performance Analysis
 
 This document describes the load-testing strategy, validated scenarios, bottleneck analysis, and performance optimizations used in the Flash Sale System.
 
@@ -14,7 +14,7 @@ Load testing was performed to validate:
 
 ---
 
-# 📌 Testing Overview
+#  Testing Overview
 
 The system was tested using **k6** to simulate flash-sale traffic under high concurrency.
 
@@ -31,7 +31,7 @@ Key validation goals included:
 
 ---
 
-# 🧪 Test Environment
+#  Test Environment
 
 Load testing was performed on local infrastructure using Dockerized services.
 
@@ -73,7 +73,7 @@ The objective was architectural validation and bottleneck analysis rather than p
 
 ---
 
-# ⚡ Load Testing Scenarios
+#  Load Testing Scenarios
 
 The following scenarios were validated using k6.
 
@@ -191,7 +191,7 @@ These findings were later used to improve:
 
 ---
 
-# 🚀 Redis Cache Optimization
+#  Redis Cache Optimization
 
 One major bottleneck discovered during testing was repeated sale-data fetching under high concurrency.
 
@@ -232,7 +232,7 @@ This significantly improved:
 
 ---
 
-# 🚦 Rate Limiting Impact
+#  Rate Limiting Impact
 
 Load testing revealed that excessive retries and repeated requests increased:
 
@@ -262,7 +262,7 @@ while improving overall system stability.
 
 ---
 
-# 📊 Observability During Testing
+#  Observability During Testing
 
 Distributed observability tooling was heavily used during performance analysis.
 
@@ -301,7 +301,7 @@ Tracing data was heavily used during optimization and bottleneck investigation.
 
 ---
 
-# 📈 Load Testing Results
+#  Load Testing Results
 
 ## k6 Load Test
 
@@ -309,7 +309,7 @@ Tracing data was heavily used during optimization and bottleneck investigation.
 
 ---
 
-# 📌 Key Engineering Outcomes
+#  Key Engineering Outcomes
 
 Load testing validated:
 
@@ -323,7 +323,7 @@ Load testing validated:
 
 ---
 
-# ⚠️ Testing Limitations
+#  Testing Limitations
 
 Testing was performed using local infrastructure and Dockerized services.
 
@@ -337,7 +337,7 @@ The testing objective was architectural validation and operational analysis rath
 
 ---
 
-# 📌 Summary
+#  Summary
 
 Load testing was used not only for throughput validation, but also for correctness validation during concurrent flash-sale traffic.
 
