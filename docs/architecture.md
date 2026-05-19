@@ -178,8 +178,6 @@ Processed events are tracked to prevent duplicate event execution during retries
 
 The system includes multiple retry and recovery workflows to preserve consistency during failures.
 
-![Failure Recovery](images/recovery-strategies.jpeg)
-
 ## Recovery Components
 
 - Producer retry queue
@@ -204,7 +202,7 @@ Redis is treated as a high-performance concurrency layer — not the source of t
 Recovery mechanisms include:
 
 - Redis AOF persistence
-- Automatic rebuild on startup
+- Lazy rebuild using persisted order data
 - Recalculation using persisted order data
 
 ```text

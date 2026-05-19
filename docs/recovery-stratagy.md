@@ -35,7 +35,7 @@ Recovery architecture combines:
 
 ## Failure Handling Paths
 
-![Failure Paths](images/failure-paths.png)
+![Failure Paths](images/failure-paths.jpeg)
 
 ---
 
@@ -191,7 +191,7 @@ PostgreSQL remains the authoritative source of inventory correctness.
 
 ## Recovery Strategies
 
-![Recovery Strategies](images/recovery-strategies.png)
+![Recovery Strategies](images/recovery-strategies.jpeg)
 
 ---
 
