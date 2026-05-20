@@ -62,11 +62,31 @@ resource "aws_db_instance" "flash_sale_db" {
   engine               = "postgres"
   engine_version       = "17"
   instance_class       = "db.t3.micro"
-  username             = "postgres"
-  password             = "password123"
-
+  username             = var.db_username
+  password             = var.db_password
+  vpc_security_group_ids = [aws_security_group.rds_sg.id]
   publicly_accessible  = true
   skip_final_snapshot  = true
+}
+
+resource "aws_security_group" "rds_sg" {
+  name = "flash-sale-rds-sg"
+
+  ingress {
+    from_port       = 5432
+    to_port         = 5432
+    protocol        = "tcp"
+
+    security_groups = [aws_security_group.flash_sale_sg.id]
+  }
+
+  egress {
+    from_port   = 0
+    to_port     = 0
+    protocol    = "-1"
+
+    cidr_blocks = ["0.0.0.0/0"]
+  }
 }
 
 resource "aws_security_group" "redis_sg" {

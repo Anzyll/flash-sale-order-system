@@ -1,25 +1,4 @@
 services:
-  app:
-    image: 385704849987.dkr.ecr.ap-south-1.amazonaws.com/flash-sale-order-system-app:latest
-    container_name: flashsale-app
-
-    restart: unless-stopped
-
-    ports:
-      - "8080:8080"
-
-    network_mode: "host"
-
-    build:
-        context: .
-    environment:
-      - SPRING_PROFILES_ACTIVE=prod
-      - DB_USERNAME=${DB_USERNAME}
-      - DB_PASSWORD=${DB_PASSWORD}
-      - SPRING_DATA_REDIS_HOST=flash-sale-redis.dlejyv.0001.aps1.cache.amazonaws.com
-      - SPRING_DATA_REDIS_PORT=6379
-    depends_on:
-      - kafka
 
   zookeeper:
     image: confluentinc/cp-zookeeper:7.5.0
@@ -27,6 +6,9 @@ services:
     restart: unless-stopped
     environment:
       ZOOKEEPER_CLIENT_PORT: 2181
+    ports:
+      - "2181:2181"
+
 
   kafka:
     image: confluentinc/cp-kafka:7.5.0
@@ -35,10 +17,41 @@ services:
     depends_on:
       - zookeeper
 
+    ports:
+      - "9092:9092"
+
     environment:
       KAFKA_ZOOKEEPER_CONNECT: zookeeper:2181
+
       KAFKA_LISTENERS: PLAINTEXT://0.0.0.0:9092
-      KAFKA_ADVERTISED_LISTENERS: PLAINTEXT://kafka:9092
+
+      KAFKA_ADVERTISED_LISTENERS: PLAINTEXT://localhost:9092
+
       KAFKA_LISTENER_SECURITY_PROTOCOL_MAP: PLAINTEXT:PLAINTEXT
+
       KAFKA_INTER_BROKER_LISTENER_NAME: PLAINTEXT
+
       KAFKA_OFFSETS_TOPIC_REPLICATION_FACTOR: 1
+
+  app:
+    image: 385704849987.dkr.ecr.ap-south-1.amazonaws.com/flash-sale-order-system-app:latest
+
+    container_name: flashsale-app
+
+    restart: unless-stopped
+
+    depends_on:
+      - kafka
+
+    ports:
+      - "8080:8080"
+
+    environment:
+      SPRING_PROFILES_ACTIVE: prod
+
+      DB_USERNAME: ${DB_USERNAME}
+      DB_PASSWORD: ${DB_PASSWORD}
+
+      SPRING_KAFKA_BOOTSTRAP_SERVERS: kafka:9092
+      SPRING_DATA_REDIS_HOST: flash-sale-redis.dlejyv.0001.aps1.cache.amazonaws.com
+      SPRING_DATA_REDIS_PORT: 6379

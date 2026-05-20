@@ -33,6 +33,7 @@ build/
 .vscode/
 .env
 terraform.tfstate
+terraform.tfvars
 terraform.tfstate.backup
 .terraform/
 flash-sale-key
